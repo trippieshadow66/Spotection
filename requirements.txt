@@ -1,3 +1,15 @@
-opencv-python
-flask
-numpy
+# Core dependencies for Spotection MVP
+flask==3.1.0
+opencv-python==4.10.0.84
+numpy==1.26.4
+
+# Flask’s dependencies (explicitly pinned for stability)
+click==8.1.7
+itsdangerous==2.1.2
+jinja2==3.1.4
+markupsafe==2.1.5
+werkzeug==3.0.3
+blinker==1.7.0
+
+# Optional: useful in Windows terminals for color output
+colorama==0.4.6
