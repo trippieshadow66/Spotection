@@ -32,4 +32,41 @@ The goal is to provide students, faculty, staff, and visitors with a graphical v
 - **GitHub** (version control & collaboration)  
 
 ---
+# Getting Started
 
+Clone the Repository
+git clone https://github.com/trippieshadow66/Spotection.git
+
+cd Spotection
+
+Create & Activate Virtual Environment
+
+Windows: 
+python -m venv venv
+venv\Scripts\Activate.ps1
+
+Mac/Linux:
+python3 -m venv venv
+source venv/bin/activate
+
+Install Dependencies Within virtual enviornment ctrl+shift+p select venv enviornemnt
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+
+Verify Installation
+Run the test script to confirm everything is installed correctly:
+python test_env.py
+✅ If successful, you’ll see version numbers for Flask, OpenCV, NumPy, Torch, and Ultralytics.
+
+Run the Capture Script
+python src/capture.py
+
+A live preview window will open.
+
+Snapshots are saved to data/frames/ every 2 seconds.
+
+Press q or Ctrl+C to stop.
+
+If the camera doesn’t open: edit src/capture.py and set
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+→ Try index 1 if 0 fails.
