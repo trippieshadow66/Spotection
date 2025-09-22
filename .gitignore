@@ -1,0 +1,19 @@
+# Ignore virtual environment
+venv/
+
+# Python cache and compiled files
+__pycache__/
+*.pyc
+
+# Mac/Windows system junk
+.DS_Store
+Thumbs.db
+
+# Environment variables file (if you create one later)
+.env
+
+# Captured frames (avoid pushing hundreds of JPGs)
+data/frames/
+
+# Logs
+*.log
