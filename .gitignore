@@ -1,19 +1,32 @@
-# Ignore virtual environment
-venv/
-
-# Python cache and compiled files
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.pkl
 
-# Mac/Windows system junk
+# Virtual environment
+.venv/
+env/
+venv/
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# OS files
 .DS_Store
 Thumbs.db
 
-# Environment variables file (if you create one later)
-.env
-
-# Captured frames (avoid pushing hundreds of JPGs)
+# Project data (don’t push raw frames or outputs)
 data/frames/
+data/warped_frames/
+overlays/
+data/occupancy/
+
+# YOLO / model weights (large binary files)
+*.pt
 
 # Logs
 *.log
+

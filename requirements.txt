@@ -2,6 +2,7 @@
 flask>=3.0
 opencv-python>=4.10
 numpy>=1.26
+pillow>=10.0   # image file support
 
 # AI / Machine Learning
 torch>=2.0
@@ -9,5 +10,9 @@ torchvision>=0.15
 torchaudio>=2.0
 ultralytics>=8.3   # YOLOv8 package
 
+# Geometry / Polygons
+shapely>=2.0
+
 # Optional / utility
 colorama>=0.4
+sqlalchemy>=2.0   # database layer (SQLite for stall configs + results)
