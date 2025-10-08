@@ -10,12 +10,12 @@ except Exception:
     SHAPELY_OK = False
 
 CONFIG = "data/lot_config.json"
-MODEL = "yolov8n.pt"   # small & fast; try 'yolov8s.pt' for better accuracy
-CONF  = 0.30           # YOLO confidence threshold
-IOU_THRESH = 0.10      # fraction of stall area overlapped by a box to call 'occupied'
+MODEL = "yolov8s.pt"   # small & fast; try 'yolov8s.pt' for better accuracy
+CONF  = 0.15           # YOLO confidence threshold
+IOU_THRESH = 0.3      # fraction of stall area overlapped by a box to call 'occupied'
 
 # COCO class ids to consider as "vehicles"
-VEHICLE_CLASSES = {2, 3, 5, 7}   # car, motorcycle, bus, truck
+VEHICLE_CLASSES = {2, 7}   # car, truck
 
 def load_config():
     with open(CONFIG, "r") as f:
@@ -60,7 +60,7 @@ def main():
     for fp in frames[-3:]:
         img = cv2.imread(fp)
         if img is None: continue
-
+        img = cv2.convertScaleAbs(img, alpha=1.2, beta=10)
         res = model.predict(source=img, conf=CONF, verbose=False)[0]
         # collect vehicle boxes
         boxes = []
@@ -69,6 +69,10 @@ def main():
             if cls_id in VEHICLE_CLASSES:
                 x1, y1, x2, y2 = map(float, b.xyxy[0].tolist())
                 boxes.append((x1, y1, x2, y2))
+
+        #  Draw YOLO detection boxes in light blue (for debugging)
+        for (x1, y1, x2, y2) in boxes:
+            cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (255, 255, 0), 2)
 
         occupied = {s["id"]: False for s in stalls}
 
