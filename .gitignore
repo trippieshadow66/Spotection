@@ -21,6 +21,7 @@ Thumbs.db
 # Project data (don’t push raw frames or outputs)
 data/frames/
 data/warped_frames/
+data/processed/
 overlays/
 data/occupancy/
 
