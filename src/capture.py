@@ -23,7 +23,7 @@ try:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"data/frames/frame_{ts}.jpg"
         cv2.imwrite(filename, frame)
-        print("📸 Saved:", filename)
+        print("Saved:", filename)
 
         # Show live preview
         cv2.imshow("Spotection Capture", frame)
