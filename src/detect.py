@@ -25,15 +25,20 @@ VEHICLE_CLASSES = {2, 3, 5, 7}  # car, motorcycle, bus, truck
 # Utility Functions
 # ------------------------------------------------------------
 def load_config():
-    """Load stall polygons from lot_config.json"""
+    """Load stall polygons (and lane numbers) from lot_config.json"""
     if not os.path.exists(CONFIG):
         raise FileNotFoundError("Missing data/lot_config.json. Run stall_config_poly.py first.")
     with open(CONFIG, "r") as f:
         cfg = json.load(f)
+
     stalls = []
     for s in cfg.get("stalls", []):
         pts = np.array(s["points"], dtype=np.int32)
-        stalls.append({"id": str(s["id"]), "pts": pts})
+        stalls.append({
+            "id": str(s["id"]),
+            "pts": pts,
+            "lane": s.get("lane", 1)  # <-- PRESERVE LANE HERE
+        })
     return stalls
 
 
@@ -60,6 +65,75 @@ def draw_overlay(img, stalls, occupied_map):
     cv2.putText(out, txt, (20, 10 + text_h + 2),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
     return out
+
+
+def draw_topdown_map(stalls, occupied_map, output_dir="maps"):
+    """
+    Render true lot grid:
+      • Lanes progress left→right by lane id.
+      • Within each lane, stalls stack front→back automatically.
+      • Stalls are drawn in the same overall numbering order you created them.
+    """
+    import cv2, os, time, numpy as np
+    os.makedirs(output_dir, exist_ok=True)
+
+    # layout constants
+    stall_w, stall_h = 80, 120
+    pad_x, pad_y = 30, 25
+    margin_x, margin_y = 80, 80
+
+    # find unique lanes and how many stalls each has (preserves numbering order)
+    lanes = {}
+    for s in sorted(stalls, key=lambda s: s["id"]):
+        lid = s.get("lane", 1)
+        lanes.setdefault(lid, []).append(s)
+
+    lane_ids = sorted(lanes.keys())
+    max_rows = max(len(v) for v in lanes.values())
+    cols = len(lane_ids)
+
+    canvas_w = int(margin_x*2 + cols*(stall_w+pad_x))
+    canvas_h = int(margin_y*2 + max_rows*(stall_h+pad_y))
+    canvas = np.ones((canvas_h, canvas_w, 3), np.uint8)*35
+
+    # keep a counter per lane so new stalls in same lane go down one slot
+    lane_row_index = {lid:0 for lid in lane_ids}
+
+    for s in sorted(stalls, key=lambda s: s["id"]):
+        pid  = s["id"]
+        lid  = s.get("lane", 1)
+        row  = lane_row_index[lid]
+        lane_row_index[lid] += 1
+
+        col = lane_ids.index(lid)
+
+        x1 = int(margin_x + col*(stall_w+pad_x))
+        y1 = int(margin_y + row*(stall_h+pad_y))
+        x2, y2 = x1+stall_w, y1+stall_h
+
+        color = (0,0,255) if occupied_map[pid] else (0,255,0)
+        cv2.rectangle(canvas, (x1,y1), (x2,y2), color, -1)
+        cv2.rectangle(canvas, (x1,y1), (x2,y2), (255,255,255), 2)
+        cv2.putText(canvas, str(pid),
+                    (x1+stall_w//2-10, y1+stall_h//2+8),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+
+    # lane labels + legend
+    for c,lid in enumerate(lane_ids):
+        cv2.putText(canvas, f"Lane {lid}",
+                    (int(margin_x + c*(stall_w+pad_x) + 5), 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,0), 2)
+    cv2.putText(canvas, "Free", (15,25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
+    cv2.putText(canvas, "Occupied", (15,50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 2)
+
+    ts = int(time.time()*1000)
+    map_path = os.path.join(output_dir, f"map_{ts}.jpg")
+    cv2.imwrite(map_path, canvas)
+    print(f"🗺️ Wrote sequential lane map: {map_path}")
+    return map_path
+
+
+
 
 
 # ------------------------------------------------------------
@@ -144,6 +218,9 @@ def detect_frame(frame_path, return_map=False):
     cv2.imwrite(overlay_path, overlay)
     print(" Wrote overlay:", overlay_path)
 
+    # --- NEW: also generate schematic map view ---
+    draw_topdown_map(stalls, occupied)
+
     if return_map:
         return overlay_path, occupied
 
@@ -185,10 +262,7 @@ def main():
         pid = s["id"]
         vals = [r.get(pid, False) for r in batch_results]
         occ_count = sum(vals)
-        if occ_count >= 2:         # majority says occupied
-            final_status[pid] = True
-        else:                      # majority says free
-            final_status[pid] = False
+        final_status[pid] = True if occ_count >= 2 else False
 
     occ_total = sum(final_status.values())
     free_total = len(final_status) - occ_total
@@ -202,6 +276,9 @@ def main():
         free_count=free_total,
         stall_status=final_status
     )
+
+    # --- NEW: also draw schematic map for batch summary ---
+    draw_topdown_map(stalls, final_status)
 
 
 if __name__ == "__main__":

@@ -1,89 +1,148 @@
 from flask import Flask, render_template, jsonify, send_file
-import json
-import time
-import os
+from src.db import get_latest_detection, init_db
+import os, time
 
 app = Flask(__name__)
 
-# Hardcoded overlay path
-OVERLAY_PATH = r"C:\Cybersecurity\NCL\Spotection\overlays\overlay_1761333396328.jpg"
-CONFIG = "data/lot_config.json"
+# --- Folder paths ---
+OVERLAY_DIR = "overlays"
+MAP_DIR = "maps"
+FALLBACK_IMAGE = "static/img/fallback.jpg"
 
-print("🚀 Starting Spotection Flask App...")
+# --- Initialize database ---
+init_db()
 
-def get_latest_parking_data():
-    """Get the latest parking data"""
+# ------------------------------------------------------------
+# Helpers
+# ------------------------------------------------------------
+def get_latest_overlay_path():
+    """Return most recent overlay image."""
     try:
-        # Get stall data from your existing config
-        total_spots = 0
-        try:
-            with open(CONFIG, "r") as f:
-                config_data = json.load(f)
-                total_spots = len(config_data.get("stalls", []))
-            print(f"🅿️ Found {total_spots} parking spots in config")
-        except Exception as e:
-            total_spots = 20  # Default fallback
-            print(f"⚠️ Using default spots: {e}")
-        
-        # Simulate data
-        available_spots = max(0, total_spots - 8)  # Simulate 8 occupied spots
-        
-        return {
-            "available": available_spots,
-            "total": total_spots,
-            "percentage": (available_spots / total_spots) * 100 if total_spots > 0 else 0,
-            "last_updated": time.strftime("%H:%M:%S"),
-            "has_overlay": os.path.exists(OVERLAY_PATH)
-        }
+        if not os.path.exists(OVERLAY_DIR):
+            os.makedirs(OVERLAY_DIR, exist_ok=True)
+            return None
+        jpgs = [f for f in os.listdir(OVERLAY_DIR) if f.lower().endswith(".jpg")]
+        if not jpgs:
+            return None
+        latest = max(jpgs, key=lambda f: os.path.getmtime(os.path.join(OVERLAY_DIR, f)))
+        return os.path.join(OVERLAY_DIR, latest)
     except Exception as e:
-        print(f"❌ Error in get_latest_parking_data: {e}")
+        print(f"❌ Overlay lookup error: {e}")
+        return None
+
+
+def get_latest_map_path():
+    """Return most recent schematic map image."""
+    try:
+        if not os.path.exists(MAP_DIR):
+            os.makedirs(MAP_DIR, exist_ok=True)
+            return None
+        jpgs = [f for f in os.listdir(MAP_DIR) if f.lower().endswith(".jpg")]
+        if not jpgs:
+            return None
+        latest = max(jpgs, key=lambda f: os.path.getmtime(os.path.join(MAP_DIR, f)))
+        return os.path.join(MAP_DIR, latest)
+    except Exception as e:
+        print(f"❌ Map lookup error: {e}")
+        return None
+
+
+# ------------------------------------------------------------
+# Core Data Access
+# ------------------------------------------------------------
+def get_latest_parking_data():
+    """Fetch the latest detection record from SQLite."""
+    try:
+        latest = get_latest_detection()
+        if not latest:
+            print("⚠️ No detection results yet.")
+            return {
+                "available": 0,
+                "total": 0,
+                "percentage": 0,
+                "last_updated": "No data",
+                "has_overlay": False,
+                "has_map": False,
+            }
+
+        occupied = latest["occupied_count"]
+        free = latest["free_count"]
+        total = occupied + free
+        overlay_path = latest["overlay_path"]
+
+        return {
+            "available": free,
+            "total": total,
+            "percentage": (free / total) * 100 if total else 0,
+            "last_updated": latest["timestamp"],
+            "has_overlay": os.path.exists(overlay_path) if overlay_path else False,
+            "has_map": bool(get_latest_map_path())
+        }
+
+    except Exception as e:
+        print(f"❌ Error loading parking data: {e}")
         return {
             "available": 0,
             "total": 0,
             "percentage": 0,
             "last_updated": "Error",
             "has_overlay": False,
-            "error": str(e)
+            "has_map": False
         }
 
+
+# ------------------------------------------------------------
+# Flask Routes
+# ------------------------------------------------------------
 @app.route('/')
 def home():
-    """Serve your website"""
-    print("🌐 Home page requested")
     return render_template('home.html')
+
 
 @app.route('/api/parking-data')
 def parking_data():
-    """API endpoint for live data"""
     return jsonify(get_latest_parking_data())
+
 
 @app.route('/overlay-image')
 def overlay_image():
-    """Serve the hardcoded overlay image"""
+    """Serve the most recent overlay or fallback image."""
     try:
-        if os.path.exists(OVERLAY_PATH):
-            print(f"🖼️ Serving overlay: {OVERLAY_PATH}")
-            return send_file(OVERLAY_PATH, mimetype='image/jpeg')
-        else:
-            print("❌ Overlay file not found, using fallback")
-            return send_file('static/parking-lot.jpg', mimetype='image/jpeg')
+        latest = get_latest_overlay_path()
+        if latest and os.path.exists(latest):
+            print(f"🖼️ Serving overlay: {latest}")
+            return send_file(latest, mimetype="image/jpeg")
+        return send_file(FALLBACK_IMAGE, mimetype="image/jpeg")
     except Exception as e:
         print(f"❌ Error serving overlay: {e}")
-        return send_file('static/parking-lot.jpg', mimetype='image/jpeg')
+        return send_file(FALLBACK_IMAGE, mimetype="image/jpeg")
 
+
+@app.route('/map-image')
+def map_image():
+    """Serve the most recent top-down map schematic."""
+    try:
+        latest = get_latest_map_path()
+        if latest and os.path.exists(latest):
+            print(f"🗺️ Serving map: {latest}")
+            return send_file(latest, mimetype="image/jpeg")
+        return send_file(FALLBACK_IMAGE, mimetype="image/jpeg")
+    except Exception as e:
+        print(f"❌ Error serving map: {e}")
+        return send_file(FALLBACK_IMAGE, mimetype="image/jpeg")
+
+
+# ------------------------------------------------------------
+# Run Server
+# ------------------------------------------------------------
 if __name__ == '__main__':
-    # Create the folders Flask needs
+    os.makedirs("static/img", exist_ok=True)
     os.makedirs("templates", exist_ok=True)
-    os.makedirs("static", exist_ok=True)
-    
-    print("✅ Starting Flask server...")
-    print("🌍 Server will be available at: http://localhost:5000")
-    print("⏹️  Press CTRL+C to stop the server")
-    
-    # Check if overlay file exists
-    if os.path.exists(OVERLAY_PATH):
-        print(f"✅ Overlay file found: {OVERLAY_PATH}")
-    else:
-        print(f"❌ Overlay file NOT found: {OVERLAY_PATH}")
-    
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    os.makedirs("overlays", exist_ok=True)
+    os.makedirs("maps", exist_ok=True)
+
+    print("\n🚗 Starting Spotection Flask Server")
+    print("🌍 Visit: http://localhost:5000")
+    print("⏹️  Stop with CTRL+C\n")
+
+    app.run(debug=True, host="0.0.0.0", port=5000)

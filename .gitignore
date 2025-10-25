@@ -24,6 +24,7 @@ data/warped_frames/
 data/processed/
 overlays/
 data/occupancy/
+maps/
 
 # YOLO / model weights (large binary files)
 *.pt
