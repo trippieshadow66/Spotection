@@ -129,7 +129,7 @@ def draw_topdown_map(stalls, occupied_map, output_dir="maps"):
     ts = int(time.time()*1000)
     map_path = os.path.join(output_dir, f"map_{ts}.jpg")
     cv2.imwrite(map_path, canvas)
-    print(f"🗺️ Wrote sequential lane map: {map_path}")
+    print(f" Wrote sequential lane map: {map_path}")
     return map_path
 
 
@@ -177,7 +177,7 @@ def detect_frame(frame_path, return_map=False):
         cv2.rectangle(img, (int(x1), int(y1)),
                       (int(x2), int(y2)), (255, 255, 0), 2)
 
-    # --- Occupancy logic (your tuned version) ---
+    #  Occupancy logic
     occupied = {s["id"]: False for s in stalls}
     for s in stalls:
         contour = np.array(s["pts"], np.int32)
@@ -218,7 +218,7 @@ def detect_frame(frame_path, return_map=False):
     cv2.imwrite(overlay_path, overlay)
     print(" Wrote overlay:", overlay_path)
 
-    # --- NEW: also generate schematic map view ---
+    #  also generate schematic map view ---
     draw_topdown_map(stalls, occupied)
 
     if return_map:
@@ -277,7 +277,7 @@ def main():
         stall_status=final_status
     )
 
-    # --- NEW: also draw schematic map for batch summary ---
+    #  also draw schematic map for batch summary ---
     draw_topdown_map(stalls, final_status)
 
 

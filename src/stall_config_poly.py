@@ -122,11 +122,11 @@ def main():
             cfg = {"image": os.path.basename(img_path), "stalls": stalls}
             with open(CONFIG_PATH, "w") as f:
                 json.dump(cfg, f, indent=2)
-            print("✅ Saved", CONFIG_PATH)
+            print(" Saved", CONFIG_PATH)
             break
 
         elif k == ord('q') or k == 27:
-            print("❌ Quit without saving.")
+            print(" Quit without saving.")
             break
 
     cv2.destroyAllWindows()

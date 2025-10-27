@@ -1,185 +1,212 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotection Project - Smart Parking Solutions</title>
-    <style>
-        /* Basic styles to make sure page loads */
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background: #1a252f;
-            color: white;
-        }
-        
-        .navbar {
-            background: #2c3e50;
-            padding: 1rem;
-            position: fixed;
-            width: 100%;
-            top: 0;
-        }
-        
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo h2 {
-            margin: 0;
-            color: white;
-        }
-        
-        .nav-menu {
-            list-style: none;
-            display: flex;
-            gap: 2rem;
-            margin: 0;
-            padding: 0;
-        }
-        
-        .nav-menu a {
-            color: white;
-            text-decoration: none;
-        }
-        
-        .hero {
-            padding: 150px 0 100px;
-            text-align: center;
-            background: linear-gradient(135deg, #1e2d3b, #2c3e50);
-        }
-        
-        .overlay-container {
-            max-width: 900px;
-            margin: 2rem auto;
-            background: rgba(255,255,255,0.1);
-            padding: 20px;
-            border-radius: 15px;
-        }
-        
-        .overlay-image {
-            width: 100%;
-            max-height: 400px;
-            object-fit: contain;
-            border: 2px solid #f1c40f;
-            border-radius: 10px;
-        }
-        
-        .overlay-stats {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 1rem;
-            color: white;
-        }
-        
-        .live-stat {
-            text-align: center;
-        }
-        
-        .stat-number {
-            display: block;
-            font-size: 2rem;
-            font-weight: bold;
-        }
-        
-        .stat-label {
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spotection Project - Smart Parking Solutions</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: #1a252f;
+      color: white;
+    }
+
+    .navbar {
+      background: #2c3e50;
+      padding: 1rem;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      z-index: 10;
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo h2 {
+      margin: 0;
+      color: white;
+    }
+
+    .nav-menu {
+      list-style: none;
+      display: flex;
+      gap: 2rem;
+      margin: 0;
+      padding: 0;
+    }
+
+    .nav-menu a {
+      color: white;
+      text-decoration: none;
+    }
+
+    .hero {
+      padding: 150px 0 100px;
+      text-align: center;
+      background: linear-gradient(135deg, #1e2d3b, #2c3e50);
+    }
+
+    .overlay-container {
+      max-width: 900px;
+      margin: 2rem auto;
+      background: rgba(255,255,255,0.1);
+      padding: 20px;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+    }
+
+    .overlay-image {
+      width: 100%;
+      max-height: 400px;
+      object-fit: contain;
+      border: 2px solid #f1c40f;
+      border-radius: 10px;
+      background: #0f1820;
+      margin-bottom: 1.5rem;
+    }
+
+    .overlay-stats {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 1rem;
+      color: white;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .live-stat {
+      text-align: center;
+    }
+
+    .stat-number {
+      display: block;
+      font-size: 2rem;
+      font-weight: bold;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .last-updated-small {
+      text-align: center;
+      margin-top: 1rem;
+      color: #f1c40f;
+      font-size: 0.9rem;
+      font-style: italic;
+    }
+
+    @media (max-width: 768px) {
+      .overlay-image {
+        max-height: 300px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="logo">
-                <h2>Spotection Project</h2>
-            </div>
-            <ul class="nav-menu">
-                <li><a href="#mission">Mission</a></li>
-                <li><a href="#about">Technology</a></li>
-            </ul>
-        </div>
-    </nav>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="logo">
+        <h2>Spotection Project</h2>
+      </div>
+      <ul class="nav-menu">
+        <li><a href="#mission">Mission</a></li>
+        <li><a href="#about">Technology</a></li>
+      </ul>
+    </div>
+  </nav>
 
-    <!-- Hero Banner with Live Overlay -->
-    <section class="hero">
-        <div class="hero-content">
-            <h1>Live Parking Detection</h1>
-            <p>AI-powered parking detection that eliminates the search for a spot</p>
-            
-            <!-- Live Parking Overlay Display -->
-            <div class="overlay-container">
-                <div class="overlay-wrapper">
-                    <img id="live-overlay" src="/overlay-image" alt="Live Parking Overlay" class="overlay-image">
-                    <div class="overlay-stats">
-                        <div class="live-stat">
-                            <span class="stat-number" id="hero-available">--</span>
-                            <span class="stat-label">Available Spots</span>
-                        </div>
-                        <div class="live-stat">
-                            <span class="stat-number" id="hero-total">--</span>
-                            <span class="stat-label">Total Spots</span>
-                        </div>
-                        <div class="live-stat">
-                            <span class="stat-number" id="hero-occupancy">--%</span>
-                            <span class="stat-label">Occupancy</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="last-updated-small">
-                    Last updated: <span id="hero-update-time">--:--:--</span>
-                </div>
-            </div>
-        </div>
-    </section>
+  <!-- Hero Banner with Live Overlay and Map -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Live Parking Detection</h1>
+      <p>AI-powered parking detection that eliminates the search for a spot</p>
 
-    <script>
-        console.log("JavaScript is running!");
-        
-        // Function to update parking data
-        function updateParkingData() {
-            fetch('/api/parking-data')
-                .then(response => response.json())
-                .then(data => {
-                    console.log("Data received:", data);
-                    
-                    // Update the stats
-                    document.getElementById('hero-available').textContent = data.available;
-                    document.getElementById('hero-total').textContent = data.total;
-                    document.getElementById('hero-occupancy').textContent = 
-                        Math.round(100 - data.percentage) + '%';
-                    document.getElementById('hero-update-time').textContent = data.last_updated;
-                    
-                    // Update colors
-                    const availableElement = document.getElementById('hero-available');
-                    if (data.percentage > 80) {
-                        availableElement.style.color = '#e74c3c';
-                    } else if (data.percentage > 50) {
-                        availableElement.style.color = '#f39c12';
-                    } else {
-                        availableElement.style.color = '#27ae60';
-                    }
-                    
-                    // Refresh overlay image
-                    const overlayImg = document.getElementById('live-overlay');
-                    overlayImg.src = '/overlay-image?t=' + new Date().getTime();
-                })
-                .catch(error => {
-                    console.log('Error:', error);
-                });
-        }
-        
-        // Update every 3 seconds
-        setInterval(updateParkingData, 3000);
-        
-        // Initial update
-        updateParkingData();
-    </script>
+      <div class="overlay-container">
+        <!-- Live Overlay -->
+        <div class="overlay-wrapper">
+          <h2>Camera Detection View</h2>
+          <img id="live-overlay" src="/overlay-image" alt="Live Parking Overlay" class="overlay-image">
+        </div>
+
+        <!-- Top-down Map -->
+        <div class="overlay-wrapper">
+          <h2>Top-Down Parking Map</h2>
+          <img id="live-map" src="/map-image" alt="Top-Down Map" class="overlay-image">
+        </div>
+
+        <!-- Stats -->
+        <div class="overlay-stats">
+          <div class="live-stat">
+            <span class="stat-number" id="hero-available">--</span>
+            <span class="stat-label">Available Spots</span>
+          </div>
+          <div class="live-stat">
+            <span class="stat-number" id="hero-total">--</span>
+            <span class="stat-label">Total Spots</span>
+          </div>
+          <div class="live-stat">
+            <span class="stat-number" id="hero-occupancy">--%</span>
+            <span class="stat-label">Occupancy</span>
+          </div>
+        </div>
+
+        <div class="last-updated-small">
+          Last updated: <span id="hero-update-time">--:--:--</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    console.log("Spotection dashboard running...");
+
+    function updateParkingData() {
+      fetch('/api/parking-data')
+        .then(response => response.json())
+        .then(data => {
+          console.log("Data received:", data);
+
+          // Update stats
+          document.getElementById('hero-available').textContent = data.available;
+          document.getElementById('hero-total').textContent = data.total;
+          document.getElementById('hero-occupancy').textContent =
+            Math.round(100 - data.percentage) + '%';
+          document.getElementById('hero-update-time').textContent = data.last_updated;
+
+          // Color for available spots
+          const availableElement = document.getElementById('hero-available');
+          if (data.percentage > 80) {
+            availableElement.style.color = '#e74c3c';
+          } else if (data.percentage > 50) {
+            availableElement.style.color = '#f39c12';
+          } else {
+            availableElement.style.color = '#27ae60';
+          }
+
+          // Refresh both images with cache-busting timestamps
+          const now = new Date().getTime();
+          document.getElementById('live-overlay').src = '/overlay-image?t=' + now;
+          document.getElementById('live-map').src = '/map-image?t=' + now;
+        })
+        .catch(error => {
+          console.log('Error:', error);
+        });
+    }
+
+    // Update every 3 seconds
+    setInterval(updateParkingData, 3000);
+    updateParkingData();
+  </script>
 </body>
 </html>

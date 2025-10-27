@@ -4,9 +4,8 @@ from src.detect import detect_frame
 from src.db import save_detection_result
 from src.detect import load_config
 
-# ------------------------------------------------------------
 # Configuration
-# ------------------------------------------------------------
+
 FRAMES_DIR = "data/frames"
 PROCESSED_DIR = "data/processed"
 OVERLAYS_DIR = "overlays"
@@ -18,9 +17,9 @@ MAX_AGE_HOURS = 2          # delete files older than this
 KEEP_LATEST = True         # always keep most recent overlay/frame
 
 
-# ------------------------------------------------------------
+
 # Utility Functions
-# ------------------------------------------------------------
+
 def ensure_dirs():
     os.makedirs(FRAMES_DIR, exist_ok=True)
     os.makedirs(PROCESSED_DIR, exist_ok=True)
@@ -51,7 +50,7 @@ def cleanup_old_files(folder, max_files=200, max_age_hours=2, keep_latest=True):
     now = time.time()
     cutoff = now - (max_age_hours * 3600)
 
-    # --- Age-based cleanup ---
+    # Age-based cleanup
     for f in files[:-1] if keep_latest else files:
         if os.path.getmtime(f) < cutoff:
             try:
@@ -60,7 +59,7 @@ def cleanup_old_files(folder, max_files=200, max_age_hours=2, keep_latest=True):
             except Exception as e:
                 print(f" Failed to delete {f}: {e}")
 
-    # --- Count-based cleanup ---
+    # Count-based cleanup
     files = sorted(
         [os.path.join(folder, f) for f in os.listdir(folder)
          if f.lower().endswith((".jpg", ".jpeg", ".png"))],
@@ -77,9 +76,9 @@ def cleanup_old_files(folder, max_files=200, max_age_hours=2, keep_latest=True):
             print(f" Failed to delete {oldest}: {e}")
 
 
-# ------------------------------------------------------------
+
 # Main Run Loop
-# ------------------------------------------------------------
+
 def main():
     ensure_dirs()
 

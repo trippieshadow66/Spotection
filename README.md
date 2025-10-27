@@ -1,72 +1,95 @@
-# Spotection
-A low-cost computer vision system that uses a single camera and AI to detect open and occupied parking spaces in real time, and displays results through a simple web interface.
+    Spotection
+A low-cost computer vision system that uses a single camera and AI to detect open and occupied parking spaces in real time — displaying results through a live web dashboard.
+Spotection is a senior capstone project (CS 490) at Marshall University.
+It’s an AI-based parking spot detection system that uses YOLOv8 and OpenCV to identify open/occupied parking spaces, stores results in a local database, and visualizes them in a simple Flask web app.
 
-Spotection is a senior capstone project (CS 490) at Marshall University.  
-It is an **AI-based parking spot detection system** that uses a single camera feed to identify open and occupied parking spaces in real time.  
+ Features (MVP)
+Capture frames from a webcam or video feed
+Detect cars using YOLOv8 + OpenCV
+Map detections onto pre-defined parking stalls
+Store results in an SQLite database
+Display both live overlays and a top-down schematic map
+Real-time updates via Flask web interface
 
-The goal is to provide students, faculty, staff, and visitors with a graphical view of available parking spots through a **web interface**, without needing costly sensors or hardware.
+ Long-Term Goals
+Support multiple parking lot configurations
+Improve detection accuracy (>95%) with custom dataset training
+Handle edge cases (lighting, rain, snow, motorcycles, occlusions)
+Deploy to multiple cameras with minimal setup
 
----
+ Tech Stack
+Python 3.11+
+OpenCV – video capture & image preprocessing
+YOLOv8 / PyTorch – object detection
+Flask – live web interface
+SQLite3 – lightweight data storage
+HTML/CSS/JS – dynamic web dashboard
 
-# Features (MVP)
-- Capture frames from a live camera or video feed  
-- Detect cars using AI (YOLO/OpenCV)  
-- Map detections onto predefined parking spots  
-- Display a simple parking lot grid (green = open, red = filled) via a Flask web app  
-
----
-
-# Long-Term Goals
-- Store and manage multiple parking lot layouts in a database  
-- Improve detection accuracy (>80%) with custom training  
-- Handle challenging conditions (rain, snow, motorcycles, poor lighting, trash in spots, etc.)  
-- Deploy to different lots and camera angles with minimal setup  
-
----
-
-# Tech Stack
-- **Python 3.11+**  
-- **OpenCV** (video capture & frame processing)  
-- **YOLO / PyTorch** (object detection)  
-- **Flask** (web interface)  
-- **GitHub** (version control & collaboration)  
-
----
-# Getting Started
-
-Clone the Repository
+    Setup Instructions
+1 Clone the Repository
 git clone https://github.com/trippieshadow66/Spotection.git
-
 cd Spotection
 
-Create & Activate Virtual Environment
+2 Create & Activate a Virtual Environment (recommended can be done locally)
 
-Windows: 
+Windows (PowerShell):
+
 python -m venv venv
 venv\Scripts\Activate.ps1
 
-Mac/Linux:
+macOS / Linux:
+
 python3 -m venv venv
 source venv/bin/activate
-
-Install Dependencies Within virtual enviornment ctrl+shift+p select venv enviornemnt
+Then install dependencies:
 python -m pip install --upgrade pip
 pip install -r requirements.txt
+Tip: In VS Code use Ctrl + Shift + P → “Python: Select Interpreter” → choose venv
 
-Verify Installation
-Run the test script to confirm everything is installed correctly:
-python test_env.py
-✅ If successful, you’ll see version numbers for Flask, OpenCV, NumPy, Torch, and Ultralytics.
+3 Initialize the Database
+python -m src.db
+This creates data/spotection.db and initializes tables for:
+Parking-lot configuration
+Detection results
 
-Run the Capture Script
-python src/capture.py
-
-A live preview window will open.
-
-Snapshots are saved to data/frames/ every 2 seconds.
-
-Press q or Ctrl+C to stop.
-
-If the camera doesn’t open: edit src/capture.py and set
+4 Capture Frames
+python -m src.capture
+Opens a live camera preview.
+Saves frames to data/frames/ every ~2 seconds.
+Press q or Ctrl + C to stop.
+If the camera doesn’t open, edit src/capture.py:
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-→ Try index 1 if 0 fails.
+# Try (1) or (2) if 0 fails
+
+6 Configure Parking Stalls
+python -m src.stall_config_poly
+Click around each stall (≥ 3 points).
+(thin Rectangle down center of stall works best)
+Press n to finish the stall.
+Press a number key (1-9) to assign a lane (inside the window).
+Repeat for each stall.
+Press s to save → data/lot_config.json.
+
+6 Start Continuous Detection
+python run_system.py
+This script will:
+Watch data/frames/ for new images
+Run YOLOv8 detection automatically
+Save overlays → /overlays
+Save schematic maps → /maps
+Write results → data/spotection.db
+Clean up older files (keeps last 2 hours / 200 files)
+Run it while capture is active in another terminal:
+# Terminal 1
+python -m src.capture
+# Terminal 2
+python run_system.py
+
+7 Launch the Web Dashboard
+python app.py
+Open your browser to 👉 http://localhost:5000
+The dashboard will show:
+Live detection overlay (from /overlays)
+Top-down schematic map (from /maps)
+Live stats: available / total / occupancy %
+Auto-refresh every 3 seconds
