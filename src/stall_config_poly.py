@@ -1,46 +1,51 @@
-import json, os, glob, cv2, numpy as np
+import os, json, glob, cv2, numpy as np
 
 WIN = "Stall Config (n=new stall, u=undo point, s=save, q=quit)"
 CONFIG_PATH = "data/lot_config.json"
+LIVE_STREAM_URL = "https://taco-about-python.com/video_feed"
 
-
-def latest_frame():
+def get_base_image():
+    """Try latest frame; if none, grab a live snapshot."""
     files = sorted([
         p for p in glob.glob("data/frames/*")
         if p.lower().endswith((".jpg", ".jpeg", ".png"))
     ])
-    return files[-1] if files else None
+    if files:
+        return cv2.imread(files[-1])
+
+    print("⚠️ No frames found, grabbing from live feed...")
+    cap = cv2.VideoCapture(LIVE_STREAM_URL)
+    ret, frame = cap.read()
+    cap.release()
+    if not ret:
+        raise RuntimeError("Could not read from live stream.")
+    os.makedirs("data/frames", exist_ok=True)
+    snap_path = "data/frames/live_snapshot.jpg"
+    cv2.imwrite(snap_path, frame)
+    print(f"✅ Saved snapshot → {snap_path}")
+    return frame
 
 
 def draw_poly(img, poly, color=(0, 255, 255)):
-    """Draw a polygon being defined."""
-    if len(poly) == 0:
-        return
+    if len(poly) == 0: return
     for i, p in enumerate(poly):
         cv2.circle(img, tuple(p), 3, (0, 255, 0), -1)
-        if i > 0:
-            cv2.line(img, tuple(poly[i - 1]), tuple(p), color, 2)
+        if i > 0: cv2.line(img, tuple(poly[i - 1]), tuple(p), color, 2)
     if len(poly) > 2:
         cv2.line(img, tuple(poly[-1]), tuple(poly[0]), color, 1)
 
 
 def main():
     os.makedirs("data", exist_ok=True)
-    img_path = latest_frame()
-    if not img_path:
-        print("No images in frames/.")
-        return
-
-    base = cv2.imread(img_path)
+    base = get_base_image()
     if base is None:
-        print("Cannot read", img_path)
+        print("❌ Could not load image.")
         return
 
     view = base.copy()
     stalls, current = [], []
 
     def redraw():
-        """Refresh window view with all polygons."""
         v = base.copy()
         for s in stalls:
             draw_poly(v, [tuple(p) for p in s["points"]])
@@ -58,7 +63,7 @@ def main():
     print("- Left-click to add polygon points around ONE stall.")
     print("- Press 'n' to finish that stall and assign lane (1–9).")
     print("- Press 'u' to undo last point.")
-    print("- Press 's' to save and exit, or 'q' to quit without saving.\n")
+    print("- Press 's' to save and exit, or 'q' to quit.\n")
 
     cv2.namedWindow(WIN, cv2.WINDOW_NORMAL)
     cv2.resizeWindow(WIN, min(base.shape[1], 1280), min(base.shape[0], 720))
@@ -69,64 +74,45 @@ def main():
         k = cv2.waitKey(25) & 0xFF
 
         if k == ord('u'):
-            if current:
-                current.pop()
+            if current: current.pop()
             view = redraw()
 
         elif k == ord('n'):
             if len(current) < 3:
                 print("Need ≥3 points to form a stall polygon.")
                 continue
-
             stall_id = len(stalls) + 1
-            print(f"Stall {stall_id} complete. Press a number key (1–9) to assign lane.")
-            cv2.imshow(WIN, view)
-
-            lane_key = None
-            while lane_key is None:
+            print(f"Stall {stall_id} complete. Press 1–9 for lane assignment.")
+            lane = None
+            while lane is None:
                 lk = cv2.waitKey(0) & 0xFF
                 if ord('1') <= lk <= ord('9'):
-                    lane_key = int(chr(lk))
-                    print(f" → Lane {lane_key} assigned.")
-                elif lk == 27 or lk == ord('q'):
-                    print("Cancelled stall assignment.")
-                    break
-
-            if lane_key is not None:
-                stalls.append({
-                    "id": stall_id,
-                    "lane": lane_key,
-                    "points": current.copy()
-                })
-                current = []
-                view = redraw()
+                    lane = int(chr(lk))
+                    print(f" → Lane {lane} assigned.")
+            stalls.append({"id": stall_id, "lane": lane, "points": current.copy()})
+            current = []
+            view = redraw()
 
         elif k == ord('s'):
-            # finish last polygon if mid-drawing
             if len(current) >= 3:
                 stall_id = len(stalls) + 1
-                print(f"Stall {stall_id} complete. Press 1–9 for lane:")
-                lane_key = None
-                while lane_key is None:
+                print(f"Stall {stall_id} complete. Press 1–9 for lane assignment.")
+                lane = None
+                while lane is None:
                     lk = cv2.waitKey(0) & 0xFF
                     if ord('1') <= lk <= ord('9'):
-                        lane_key = int(chr(lk))
-                        print(f" → Lane {lane_key} assigned.")
+                        lane = int(chr(lk))
+                        print(f" → Lane {lane} assigned.")
                         break
-                stalls.append({
-                    "id": stall_id,
-                    "lane": lane_key,
-                    "points": current.copy()
-                })
-
-            cfg = {"image": os.path.basename(img_path), "stalls": stalls}
+                stalls.append({"id": stall_id, "lane": lane, "points": current.copy()})
+            cfg = {"stalls": stalls}
             with open(CONFIG_PATH, "w") as f:
                 json.dump(cfg, f, indent=2)
-            print(" Saved", CONFIG_PATH)
+            print("✅ Saved", CONFIG_PATH)
             break
 
-        elif k == ord('q') or k == 27:
-            print(" Quit without saving.")
+        elif k in (ord('q'), 27):
+            print("Quit without saving.")
             break
 
     cv2.destroyAllWindows()

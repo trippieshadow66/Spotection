@@ -1,40 +1,38 @@
 import cv2, os, time
-from datetime import datetime
 
-# Ensure output folder exists
-os.makedirs("data/frames", exist_ok=True)
+LIVE_STREAM_URL = "https://taco-about-python.com/video_feed"
+OUTPUT_DIR = "data/frames"
+INTERVAL = 2.0  # seconds between snapshots
 
-# Try backend with my camera
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-if not cap.isOpened():
-    raise RuntimeError(" Could not open camera. Try changing VideoCapture(0) → (1) or (2).")
+def main():
+    print(f"Connecting to live stream: {LIVE_STREAM_URL}")
+    cap = cv2.VideoCapture(LIVE_STREAM_URL)
+    if not cap.isOpened():
+        raise RuntimeError(" Unable to open live feed.")
 
-print(" Camera opened. Capturing frames... Press CTRL+C to stop.")
+    print(" Capturing frames every", INTERVAL, "seconds. Press Ctrl+C to stop.\n")
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print(" Frame read failed. Reconnecting...")
+                cap.release()
+                time.sleep(2)
+                cap = cv2.VideoCapture(LIVE_STREAM_URL)
+                continue
 
-try:
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            print(" No frame received. Exiting.")
-            break
+            ts = int(time.time() * 1000)
+            path = os.path.join(OUTPUT_DIR, f"live_{ts}.jpg")
+            cv2.imwrite(path, frame)
+            print(f"Saved {path}")
+            time.sleep(INTERVAL)
 
-        # Save snapshot
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"data/frames/frame_{ts}.jpg"
-        cv2.imwrite(filename, frame)
-        print("Saved:", filename)
+    except KeyboardInterrupt:
+        print("\nStopped by user.")
+    finally:
+        cap.release()
 
-        # Show live preview
-        cv2.imshow("Spotection Capture", frame)
-
-        # Wait ~2s, press q to quit
-        if cv2.waitKey(2000) & 0xFF == ord('q'):
-            break
-
-except KeyboardInterrupt:
-    print("\n Stopped by user.")
-
-finally:
-    cap.release()
-    cv2.destroyAllWindows()
+if __name__ == "__main__":
+    main()

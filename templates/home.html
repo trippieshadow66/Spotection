@@ -126,17 +126,18 @@
     </div>
   </nav>
 
-  <!-- Hero Banner with Live Overlay and Map -->
+  <!-- Hero Banner with Live Feed and Map -->
   <section class="hero">
     <div class="hero-content">
       <h1>Live Parking Detection</h1>
       <p>AI-powered parking detection that eliminates the search for a spot</p>
 
       <div class="overlay-container">
-        <!-- Live Overlay -->
+        <!-- Live Camera Feed -->
         <div class="overlay-wrapper">
           <h2>Camera Detection View</h2>
-          <img id="live-overlay" src="/overlay-image" alt="Live Parking Overlay" class="overlay-image">
+          <!-- ✅ Changed to live feed instead of overlay image -->
+          <img id="live-overlay" src="/live-feed" alt="Live Camera Feed" class="overlay-image">
         </div>
 
         <!-- Top-down Map -->
@@ -194,9 +195,8 @@
             availableElement.style.color = '#27ae60';
           }
 
-          // Refresh both images with cache-busting timestamps
+          // ✅ Only refresh the map now (live feed streams continuously)
           const now = new Date().getTime();
-          document.getElementById('live-overlay').src = '/overlay-image?t=' + now;
           document.getElementById('live-map').src = '/map-image?t=' + now;
         })
         .catch(error => {
