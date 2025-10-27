@@ -78,7 +78,7 @@ def draw_topdown_map(stalls, occupied_map, output_dir="maps"):
     os.makedirs(output_dir, exist_ok=True)
 
     # layout constants
-    stall_w, stall_h = 80, 120
+    stall_w, stall_h = 120, 80
     pad_x, pad_y = 30, 25
     margin_x, margin_y = 80, 80
 
@@ -171,6 +171,18 @@ def detect_frame(frame_path, return_map=False):
         if cls_id in VEHICLE_CLASSES:
             x1, y1, x2, y2 = map(float, b.xyxy[0].tolist())
             boxes.append((x1, y1, x2, y2))
+            
+    # Debug: draw a red dot for the center of each detected vehicle
+    for (x1, y1, x2, y2) in boxes:
+        cx = int((x1 + x2) / 2)
+        cy = int((y1 + y2) / 2)
+
+    # optional: apply same offset used for testing
+    # cy += 25  # uncomment to visualize offset if you’re using it
+
+        cv2.circle(img, (cx, cy), 5, (0, 0, 255), -1)  # red center dot
+        cv2.putText(img, "C", (cx - 5, cy - 8),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
     # Debug draw (optional)
     for (x1, y1, x2, y2) in boxes:
@@ -187,11 +199,21 @@ def detect_frame(frame_path, return_map=False):
         for box in boxes[:]:  # iterate over a copy
             x1, y1, x2, y2 = box
 
-            shrink = 6
+            # Slightly shrink the YOLO box to avoid touching edges
+            shrink = 15
             x1 += shrink; y1 += shrink
             x2 -= shrink; y2 -= shrink
 
-            # Overlap ratio
+            # --- Calculate center and apply downward offset ---
+            cx = int((x1 + x2) / 2)
+            cy = int((y1 + y2) / 2)
+
+            # Shift center point lower to align with true car footprint
+            y_offset = 15   # 🔧 Tune this (15–40 px typical)
+            cy += y_offset
+
+
+            # --- Compute simple overlap ratio as secondary test ---
             stall_rect = (sx, sy, sx + sw, sy + sh)
             ix1, iy1 = max(x1, stall_rect[0]), max(y1, stall_rect[1])
             ix2, iy2 = min(x2, stall_rect[2]), min(y2, stall_rect[3])
@@ -200,9 +222,7 @@ def detect_frame(frame_path, return_map=False):
             stall_area = sw * sh
             overlap_ratio = inter_area / (stall_area + 1e-6)
 
-            # Center test
-            cx = int((x1 + x2) / 2)
-            cy = int((y1 + y2) / 2)
+            # --- Occupancy decision ---
             in_poly = cv2.pointPolygonTest(contour, (cx, cy), False) >= 0
 
             if in_poly or overlap_ratio > 0.25:

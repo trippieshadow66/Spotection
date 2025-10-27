@@ -52,7 +52,7 @@ This creates data/spotection.db and initializes tables for:
 Parking-lot configuration
 Detection results
 
-4 Capture Frames
+4 Capture starting Frames for setup
 python -m src.capture
 Opens a live camera preview.
 Saves frames to data/frames/ every ~2 seconds.
@@ -63,12 +63,15 @@ cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 6 Configure Parking Stalls
 python -m src.stall_config_poly
+Start from the left most lane and the furthest stall coming towards the camera as you progress for map view.
 Click around each stall (≥ 3 points).
-(thin Rectangle down center of stall works best)
+(thin Rectangle down center of stall or both corners of front part of stall and back middle for triangle)
 Press n to finish the stall.
 Press a number key (1-9) to assign a lane (inside the window).
 Repeat for each stall.
 Press s to save → data/lot_config.json.
+Press q to exit without saving
+
 
 6 Start Continuous Detection
 python run_system.py
