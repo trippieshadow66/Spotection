@@ -55,12 +55,16 @@
     }
 
     .overlay-container {
-      max-width: 900px;
+      max-width: 1000px;
       margin: 2rem auto;
       background: rgba(255,255,255,0.1);
       padding: 20px;
       border-radius: 15px;
       backdrop-filter: blur(10px);
+    }
+
+    .overlay-wrapper {
+      margin-bottom: 2rem;
     }
 
     .overlay-image {
@@ -70,7 +74,11 @@
       border: 2px solid #f1c40f;
       border-radius: 10px;
       background: #0f1820;
-      margin-bottom: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    h2 {
+      color: #f1c40f;
     }
 
     .overlay-stats {
@@ -126,23 +134,29 @@
     </div>
   </nav>
 
-  <!-- Hero Banner with Live Feed and Map -->
+  <!-- Hero Banner with Feeds and Map -->
   <section class="hero">
     <div class="hero-content">
-      <h1>Live Parking Detection</h1>
-      <p>AI-powered parking detection that eliminates the search for a spot</p>
+      <h1>Live Parking Detection Dashboard</h1>
+      <p>AI-powered detection delivering real-time stall availability and map visualization</p>
 
       <div class="overlay-container">
-        <!-- Live Camera Feed -->
+
+        <!-- 1️⃣ Raw Live Feed -->
         <div class="overlay-wrapper">
-          <h2>Camera Detection View</h2>
-          <!-- ✅ Changed to live feed instead of overlay image -->
-          <img id="live-overlay" src="/live-feed" alt="Live Camera Feed" class="overlay-image">
+          <h2>Live Camera Feed</h2>
+          <img id="live-raw" src="/raw-feed" alt="Raw Camera Feed" class="overlay-image">
         </div>
 
-        <!-- Top-down Map -->
+        <!-- 2️⃣ AI Overlay View -->
         <div class="overlay-wrapper">
-          <h2>Top-Down Parking Map</h2>
+          <h2>AI Detection Overlay</h2>
+          <img id="live-overlay" src="/live-feed" alt="Overlay View" class="overlay-image">
+        </div>
+
+        <!-- 3️⃣ Top-Down Schematic Map -->
+        <div class="overlay-wrapper">
+          <h2>Top-Down Parking Map (True Lot Layout)</h2>
           <img id="live-map" src="/map-image" alt="Top-Down Map" class="overlay-image">
         </div>
 
@@ -195,13 +209,11 @@
             availableElement.style.color = '#27ae60';
           }
 
-          // ✅ Only refresh the map now (live feed streams continuously)
+          // Refresh map with cache-buster to get latest schematic
           const now = new Date().getTime();
           document.getElementById('live-map').src = '/map-image?t=' + now;
         })
-        .catch(error => {
-          console.log('Error:', error);
-        });
+        .catch(error => console.log('Error:', error));
     }
 
     // Update every 3 seconds
