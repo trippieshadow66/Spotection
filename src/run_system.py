@@ -8,7 +8,7 @@ from src.db import save_detection_result
 # ------------------------------------------------------------
 CONFIG = "data/lot_config.json"
 MODEL_PATH = "yolov8s.pt"
-CONF = 0.15
+CONF = 0.3
 VEHICLE_CLASSES = {2, 3, 5, 7}  # car, motorcycle, bus, truck
 
 FRAMES_DIR = "data/frames"
@@ -17,9 +17,7 @@ OVERLAYS_DIR = "overlays"
 MAP_DIR = "maps"
 
 CHECK_INTERVAL = 2
-MAX_PROCESSED_FILES = 200
-MAX_AGE_HOURS = 2
-KEEP_LATEST = True
+MAX_KEEP = 5  # Keep only 5 of each type to stay lightweight
 
 
 # ------------------------------------------------------------
@@ -47,6 +45,18 @@ def load_config():
     return stalls
 
 
+def cleanup_folder(folder, keep=MAX_KEEP):
+    """Keep only N most recent images in a folder"""
+    if not os.path.exists(folder):
+        return
+    imgs = sorted(glob.glob(os.path.join(folder, "*.jpg")), key=os.path.getmtime)
+    for old in imgs[:-keep]:
+        try:
+            os.remove(old)
+        except:
+            pass
+
+
 def draw_overlay(img, stalls, occupied_map, boxes=None):
     """Draw YOLO detections + stall overlays"""
     out = img.copy()
@@ -57,7 +67,8 @@ def draw_overlay(img, stalls, occupied_map, boxes=None):
             cx, cy = int((x1 + x2) / 2), int((y1 + y2) / 2)
             cv2.rectangle(out, (int(x1), int(y1)), (int(x2), int(y2)), (255, 255, 0), 2)
             cv2.circle(out, (cx, cy), 5, (0, 0, 255), -1)
-            cv2.putText(out, "C", (cx - 5, cy - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+            cv2.putText(out, "C", (cx - 5, cy - 8),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
     # --- Stall outlines ---
     for s in stalls:
@@ -65,14 +76,16 @@ def draw_overlay(img, stalls, occupied_map, boxes=None):
         color = (0, 0, 255) if occupied_map.get(pid) else (0, 200, 0)
         cv2.polylines(out, [pts], True, color, 2)
         cX, cY = int(np.mean(pts[:, 0])), int(np.mean(pts[:, 1]))
-        cv2.putText(out, pid, (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+        cv2.putText(out, pid, (cX, cY),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
     # --- Summary text ---
     tot, occ = len(stalls), sum(occupied_map.values())
     txt = f"Occupied: {occ}/{tot}   Free: {tot - occ}"
     (tw, th), _ = cv2.getTextSize(txt, cv2.FONT_HERSHEY_SIMPLEX, 0.9, 2)
     cv2.rectangle(out, (10, 10), (10 + tw + 20, 10 + th + 10), (0, 0, 0), -1)
-    cv2.putText(out, txt, (20, 10 + th + 2), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+    cv2.putText(out, txt, (20, 10 + th + 2),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
     return out
 
 
@@ -117,6 +130,7 @@ def draw_topdown_map(stalls, occupied_map, output_dir=MAP_DIR):
     ts = int(time.time() * 1000)
     map_path = os.path.join(output_dir, f"map_{ts}.jpg")
     cv2.imwrite(map_path, canvas)
+    cleanup_folder(output_dir, MAX_KEEP)
     return map_path
 
 
@@ -133,7 +147,6 @@ def detect_frame(image_path, model):
     stalls = load_config()
     res = model.predict(source=img, conf=CONF, verbose=False)[0]
 
-    # --- collect YOLO boxes ---
     boxes = []
     for b in res.boxes:
         cls_id = int(b.cls.item())
@@ -142,7 +155,6 @@ def detect_frame(image_path, model):
 
     occupied = {s["id"]: False for s in stalls}
 
-    # --- visualize & apply adjusted centers ---
     for s in stalls:
         contour = np.array(s["pts"], np.int32)
         pid = s["id"]
@@ -150,31 +162,17 @@ def detect_frame(image_path, model):
 
         for box in boxes[:]:
             x1, y1, x2, y2 = box
-
-            # --- Shrink box inward to reduce overlap with nearby stalls ---
-            shrink = 25
+            shrink = 15
             x1 += shrink; y1 += shrink
             x2 -= shrink; y2 -= shrink
-
-            # --- Lower center to approximate wheel/tire area ---
             cx = int((x1 + x2) / 2)
-            cy = int((y1 + y2) / 2) + 25
-
-            # --- Draw debug visualization for adjusted boxes ---
-            cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 255), 1)
-            cv2.circle(img, (cx, cy), 6, (0, 0, 255), -1)
-            cv2.putText(img, "adj", (cx - 12, cy - 12),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 1)
-
-            # --- Stall intersection checks ---
+            cy = int((y1 + y2) / 2) + 15
             in_poly = cv2.pointPolygonTest(contour, (cx, cy), False) >= 0
             ix1, iy1 = max(x1, sx), max(y1, sy)
             ix2, iy2 = min(x2, sx + sw), min(y2, sy + sh)
             inter_w, inter_h = max(0, ix2 - ix1), max(0, iy2 - iy1)
             overlap = (inter_w * inter_h) / (sw * sh + 1e-6)
-
-            # --- Occupancy decision ---
-            if in_poly or overlap > 0.50:
+            if in_poly or overlap > 0.25:
                 occupied[pid] = True
                 boxes.remove(box)
                 break
@@ -185,26 +183,11 @@ def detect_frame(image_path, model):
     cv2.imwrite(overlay_path, overlay)
     draw_topdown_map(stalls, occupied)
 
+    # 🧹 Cleanup excess overlays/maps
+    cleanup_folder(OVERLAYS_DIR, MAX_KEEP)
+    cleanup_folder(MAP_DIR, MAX_KEEP)
+
     return overlay_path, occupied
-
-
-
-def cleanup_old_files(folder, max_files=200, max_age_hours=2, keep_latest=True):
-    """Delete old files by age and count."""
-    if not os.path.exists(folder): return
-    files = sorted([os.path.join(folder, f) for f in os.listdir(folder)
-                    if f.lower().endswith((".jpg", ".jpeg", ".png"))],
-                   key=os.path.getmtime)
-    now, cutoff = time.time(), time.time() - max_age_hours * 3600
-    for f in files[:-1] if keep_latest else files:
-        if os.path.getmtime(f) < cutoff:
-            try: os.remove(f)
-            except: pass
-    while len(files) > max_files:
-        oldest = files.pop(0)
-        if keep_latest and oldest == files[-1]: break
-        try: os.remove(oldest)
-        except: pass
 
 
 def main():
@@ -214,35 +197,42 @@ def main():
         return
 
     model = YOLO(MODEL_PATH)
-    processed = set()
-
-    print("\n🚗 Spotection System Running... (CTRL+C to stop)\n")
+    print("\n🚗 Spotection Real-Time System Running... (CTRL+C to stop)\n")
 
     try:
         while True:
+            # 🕒 Get the newest frame only
             frames = sorted(glob.glob(os.path.join(FRAMES_DIR, "*.jpg")), key=os.path.getmtime)
-            for fp in frames:
-                if fp in processed:
-                    continue
-                print(f"🆕 New frame detected: {fp}")
+            if not frames:
+                time.sleep(CHECK_INTERVAL)
+                continue
+
+            latest = frames[-1]
+            print(f"🆕 Processing latest frame: {os.path.basename(latest)}")
+
+            try:
+                overlay_path, occupied = detect_frame(latest, model)
+                if overlay_path and occupied:
+                    save_detection_result(
+                        frame_path=latest,
+                        overlay_path=overlay_path,
+                        occupied_count=sum(occupied.values()),
+                        free_count=len(occupied) - sum(occupied.values()),
+                        stall_status=occupied
+                    )
+                    print(f"✅ DB updated | {sum(occupied.values())} occupied / {len(occupied)} total")
+            except Exception as e:
+                print(f"❌ Error: {e}")
+
+            # 🧹 Remove older frames to stay real-time
+            for old in frames[:-1]:
                 try:
-                    overlay_path, occupied = detect_frame(fp, model)
-                    if overlay_path and occupied:
-                        save_detection_result(
-                            frame_path=fp,
-                            overlay_path=overlay_path,
-                            occupied_count=sum(occupied.values()),
-                            free_count=len(occupied) - sum(occupied.values()),
-                            stall_status=occupied
-                        )
-                        print(f"✅ DB updated for {os.path.basename(fp)}")
-                    shutil.move(fp, os.path.join(PROCESSED_DIR, os.path.basename(fp)))
-                    processed.add(fp)
-                except Exception as e:
-                    print(f"❌ Error processing {fp}: {e}")
-            cleanup_old_files(PROCESSED_DIR, MAX_PROCESSED_FILES, MAX_AGE_HOURS, KEEP_LATEST)
-            cleanup_old_files(OVERLAYS_DIR, MAX_PROCESSED_FILES, MAX_AGE_HOURS, KEEP_LATEST)
+                    os.remove(old)
+                except:
+                    pass
+
             time.sleep(CHECK_INTERVAL)
+
     except KeyboardInterrupt:
         print("\n🛑 System stopped by user.")
 

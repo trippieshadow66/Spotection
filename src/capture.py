@@ -22,7 +22,8 @@ def main():
                 time.sleep(2)
                 cap = cv2.VideoCapture(LIVE_STREAM_URL)
                 continue
-
+            
+            frame = cv2.flip(frame, 0)
             ts = int(time.time() * 1000)
             path = os.path.join(OUTPUT_DIR, f"live_{ts}.jpg")
             cv2.imwrite(path, frame)
