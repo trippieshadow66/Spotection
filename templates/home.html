@@ -5,211 +5,488 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Spotection Project - Smart Parking Solutions</title>
   <style>
-      html {
-          scoll-behavior: smooth;
-          scroll-padding-top: 80px;
-      }
-    body {
+    /* Reset and Base Styles */
+    * {
       margin: 0;
       padding: 0;
-      font-family: Arial, sans-serif;
-      background: #1a252f;
-      color: white;
+      box-sizing: border-box;
     }
 
-    /* Navbar */
+    :root {
+      --parking-dark: #1e2d3b;
+      --parking-navy: #2c3e50;
+      --parking-grey: #34495e;
+      --parking-green: #27ae60;
+      --parking-lime: #2ecc71;
+      --parking-yellow: #f1c40f;
+      --parking-orange: #e67e22;
+      --text-light: #ecf0f1;
+      --text-lighter: #ffffff;
+      --background-dark: #1a252f;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      line-height: 1.6;
+      color: var(--text-light);
+      background-color: var(--background-dark);
+      scroll-behavior: smooth;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 80px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Navigation */
     .navbar {
-      background: #2c3e50;
-      padding: 1rem;
+      background-color: var(--parking-navy);
+      padding: 1rem 0;
       position: fixed;
       width: 100%;
       top: 0;
-      z-index: 10;
+      z-index: 1000;
+      border-bottom: 3px solid var(--parking-yellow);
+      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
 
     .nav-container {
       max-width: 1200px;
       margin: 0 auto;
+      padding: 0 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
     .logo h2 {
-      margin: 0;
-      color: white;
+      color: var(--text-lighter);
+      font-size: 1.8rem;
+      font-weight: bold;
+      transition: transform 0.3s ease;
+    }
+
+    .logo h2:hover {
+      transform: scale(1.05);
     }
 
     .nav-menu {
-      list-style: none;
       display: flex;
+      list-style: none;
       gap: 2rem;
-      margin: 0;
-      padding: 0;
     }
 
     .nav-menu a {
-      color: white;
+      color: var(--text-light);
       text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      position: relative;
+      padding: 0.5rem 0;
     }
 
-    /* Hero */
+    .nav-menu a:hover {
+      color: var(--parking-yellow);
+      transform: translateY(-2px);
+    }
+
+    .nav-menu a::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background-color: var(--parking-yellow);
+      transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .nav-menu a:hover::after {
+      width: 100%;
+    }
+
+    /* Hero Section */
     .hero {
+      background: linear-gradient(135deg, var(--parking-dark) 0%, var(--parking-navy) 100%);
+      color: var(--text-lighter);
       padding: 150px 0 100px;
       text-align: center;
-      background: linear-gradient(135deg, #1e2d3b, #2c3e50);
+      animation: fadeInUp 0.8s ease-out;
+      position: relative;
+      overflow: hidden;
     }
 
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+          radial-gradient(circle at 20% 80%, rgba(241, 196, 15, 0.1) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(46, 204, 113, 0.1) 0%, transparent 50%);
+      z-index: 1;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-content h1 {
+      font-size: 3.5rem;
+      margin-bottom: 1.5rem;
+      font-weight: bold;
+      animation: slideInFromTop 0.8s ease-out 0.2s both;
+      background: linear-gradient(135deg, var(--parking-yellow), var(--parking-lime));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-content p {
+      font-size: 1.3rem;
+      margin-bottom: 2.5rem;
+      opacity: 0.9;
+      animation: slideInFromTop 0.8s ease-out 0.4s both;
+    }
+
+    /* Call to Action Button */
     .cta-button {
-      background: #f1c40f;
-      color: #1a252f;
+      background: linear-gradient(135deg, var(--parking-yellow), var(--parking-orange));
+      color: var(--parking-navy);
       border: none;
-      padding: 0.8rem 1.5rem;
-      font-size: 1rem;
-      border-radius: 5px;
+      padding: 15px 40px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      border-radius: 8px;
       cursor: pointer;
-      margin-top: 1rem;
-      transition: 0.3s;
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 5px 20px rgba(241, 196, 15, 0.3);
     }
 
     .cta-button:hover {
-      background: #d4ac0d;
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 10px 30px rgba(241, 196, 15, 0.5);
+      color: var(--background-dark);
     }
 
-    /* Overlay section */
+    .cta-button:active {
+      transform: translateY(-1px) scale(1.02);
+    }
+
+    /* Overlay Section */
     .overlay-container {
-      max-width: 1000px;
+      max-width: 900px;
       margin: 2rem auto;
-      background: rgba(255,255,255,0.1);
-      padding: 20px;
+      background: rgba(255, 255, 255, 0.1);
       border-radius: 15px;
+      padding: 20px;
       backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
     }
 
     .overlay-wrapper {
-      margin-bottom: 2rem;
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
     }
 
     .overlay-image {
       width: 100%;
-      max-height: 400px;
-      object-fit: contain;
-      border: 2px solid #f1c40f;
-      border-radius: 10px;
-      background: #0f1820;
-      margin-top: 1rem;
+      height: 450px;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.3s ease;
     }
 
-    h2 {
-      color: #f1c40f;
+    .overlay-image:hover {
+      transform: scale(1.02);
     }
 
+    /* Live Stats Overlay */
     .overlay-stats {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+      padding: 2rem 1rem 1rem;
       display: flex;
       justify-content: space-around;
-      margin-top: 1rem;
-      color: white;
-      flex-wrap: wrap;
-      gap: 1rem;
+      align-items: center;
     }
 
     .live-stat {
       text-align: center;
+      color: white;
     }
 
     .stat-number {
       display: block;
-      font-size: 2rem;
+      font-size: 2.5rem;
       font-weight: bold;
+      margin-bottom: 0.5rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
     }
 
     .stat-label {
       font-size: 0.9rem;
-      opacity: 0.8;
+      opacity: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
     .last-updated-small {
       text-align: center;
-      margin-top: 1rem;
-      color: #f1c40f;
+      color: var(--parking-yellow);
       font-size: 0.9rem;
+      margin-top: 1rem;
       font-style: italic;
     }
 
     /* Mission Section */
     .mission {
-      background: #243447;
-      padding: 80px 20px;
+      padding: 100px 0;
+      background-color: var(--parking-grey);
+      animation: fadeIn 0.8s ease-out;
+      border-top: 1px solid rgba(241, 196, 15, 0.3);
+      border-bottom: 1px solid rgba(241, 196, 15, 0.3);
+    }
+
+    .mission-content h2 {
+      color: var(--parking-yellow);
+      font-size: 2.5rem;
+      margin-bottom: 2rem;
       text-align: center;
+      animation: slideInFromLeft 0.8s ease-out;
     }
 
-    .mission h2 {
-      color: #f1c40f;
-      font-size: 2rem;
-      margin-bottom: 1rem;
+    .mission-content p {
+      margin-bottom: 1.5rem;
+      font-size: 1.2rem;
+      line-height: 1.8;
+      animation: slideInFromRight 0.8s ease-out 0.2s both;
+      text-align: center;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+      color: var(--text-light);
     }
 
-    .mission p {
-      font-size: 1.1rem;
-      max-width: 700px;
-      margin: 0 auto;
-    }
-
-    /* Technology Section */
+    /* About Section */
     .about {
-      background: #1e2d3b;
-      padding: 80px 20px;
+      padding: 100px 0;
+      background-color: var(--parking-dark);
     }
 
     .about-content {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
       align-items: center;
-      justify-content: center;
-      gap: 2rem;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
-    .about-text {
-      flex: 1;
-      min-width: 300px;
     }
 
     .about-text h2 {
-      color: #f1c40f;
+      color: var(--parking-lime);
+      font-size: 2.5rem;
+      margin-bottom: 1.5rem;
+      animation: slideInFromLeft 0.8s ease-out;
     }
 
-    .about-image {
-      flex: 1;
-      min-width: 300px;
-      text-align: center;
+    .about-text p {
+      margin-bottom: 1.5rem;
+      font-size: 1.2rem;
+      line-height: 1.7;
+      animation: slideInFromLeft 0.8s ease-out 0.2s both;
+      color: var(--text-light);
     }
 
+    /* Campus Image Styles */
     .campus-image {
       width: 100%;
-      max-width: 500px;
-      border-radius: 10px;
-      border: 2px solid #f1c40f;
+      height: 350px;
+      object-fit: cover;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      animation: slideInFromRight 0.8s ease-out 0.3s both;
+      border: 2px solid var(--parking-yellow);
+    }
+
+    .campus-image:hover {
+      transform: scale(1.03);
+      box-shadow: 0 15px 40px rgba(241, 196, 15, 0.2);
+    }
+
+    /* Live Parking Section */
+    .live-parking {
+      padding: 80px 0;
+      background: linear-gradient(135deg, var(--parking-grey) 0%, var(--parking-navy) 100%);
+      border-top: 1px solid rgba(241, 196, 15, 0.3);
+      border-bottom: 1px solid rgba(241, 196, 15, 0.3);
+    }
+
+    .parking-stats h2 {
+      color: var(--parking-yellow);
+      font-size: 2.5rem;
+      margin-bottom: 2rem;
+      text-align: center;
+      animation: slideInFromTop 0.8s ease-out;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2rem;
+      border-radius: 12px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      background: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .stat-card h3 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      color: var(--text-lighter);
+    }
+
+    .stat-card p {
+      color: var(--text-light);
+      font-size: 1.1rem;
+    }
+
+    .last-updated {
+      text-align: center;
+      color: var(--parking-yellow);
+      font-style: italic;
     }
 
     /* Footer */
     .footer {
-      background: #0f1820;
-      padding: 20px;
-      text-align: center;
-      color: #f1c40f;
-      font-size: 0.9rem;
+      background-color: var(--parking-navy);
+      color: var(--text-light);
+      padding: 40px 0;
+      animation: fadeIn 0.8s ease-out;
+      border-top: 3px solid var(--parking-yellow);
     }
 
-    @media (max-width: 768px) {
-      .overlay-image {
-        max-height: 300px;
-      }
+    .footer-content {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-      .about-content {
-        flex-direction: column;
-      }
+    .footer-info p {
+      margin-bottom: 0.5rem;
+      transition: opacity 0.3s ease;
+      text-align: center;
+      font-size: 1.1rem;
+      color: var(--parking-yellow);
+    }
+
+    .footer-info:hover p {
+      opacity: 0.9;
+    }
+
+    /* Animation Keyframes */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideInFromTop {
+      from { opacity: 0; transform: translateY(-50px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideInFromLeft {
+      from { opacity: 0; transform: translateX(-50px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideInFromRight {
+      from { opacity: 0; transform: translateX(50px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .nav-menu { flex-direction: column; gap: 1rem; }
+      .hero-content h1 { font-size: 2.5rem; }
+      .about-content { grid-template-columns: 1fr; }
+      .campus-image { height: 250px; }
+      .overlay-image { height: 300px; }
+      .overlay-stats { flex-direction: column; gap: 0.5rem; padding: 1rem; }
+      .stat-number { font-size: 2rem; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .stat-card { padding: 1.5rem; }
+    }
+
+    /* Parking Lot Selection */
+    .lot-selection {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin: 2rem 0;
+    }
+
+    .lot-button {
+      background: var(--parking-grey);
+      color: var(--text-light);
+      border: 2px solid var(--parking-yellow);
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .lot-button:hover {
+      background: var(--parking-yellow);
+      color: var(--parking-navy);
+      transform: translateY(-3px);
+    }
+
+    .lot-button.active {
+      background: var(--parking-yellow);
+      color: var(--parking-navy);
+    }
+
+    /* Hidden class for page switching */
+    .hidden {
+      display: none;
     }
   </style>
 </head>
@@ -223,109 +500,269 @@
       <ul class="nav-menu">
         <li><a href="#mission">Mission</a></li>
         <li><a href="#about">Technology</a></li>
+        <li><a href="#" id="lot1-link">Parking Lot 1</a></li>
+        <li><a href="#" id="lot2-link">Parking Lot 2</a></li>
       </ul>
     </div>
   </nav>
 
-  <!-- Hero Banner with Live Feed and Map -->
-  <section class="hero">
-    <div class="hero-content">
-      <h1>Live Parking Detection Dashboard</h1>
-      <p>AI-powered detection delivering real-time stall availability and map visualization</p>
+  <!-- Parking Lot 1 Content -->
+  <div id="parking-lot-1">
+    <!-- Hero Banner with Live Feed and Map -->
+    <section class="hero">
+      <div class="hero-content">
+        <h1>Live Parking Detection Dashboard</h1>
+        <p>AI-powered detection delivering real-time stall availability and map visualization</p>
 
-      <div class="overlay-container">
-
-        <!-- 1️⃣ Raw Live Feed -->
-        <div class="overlay-wrapper">
-          <h2>Live Camera Feed</h2>
-          <img id="live-raw" src="/raw-feed" alt="Raw Camera Feed" class="overlay-image">
+        <!-- Parking Lot Selection -->
+        <div class="lot-selection">
+          <button class="lot-button active" id="lot1-btn">Parking Lot 1</button>
+          <button class="lot-button" id="lot2-btn">Parking Lot 2</button>
         </div>
 
-        <!-- 2️⃣ AI Overlay View -->
-        <div class="overlay-wrapper">
-          <h2>Camera Detection View</h2>
-          <!-- ✅ Changed to live feed instead of overlay image -->
-          <img id="live-overlay" src="/live-feed" alt="Live Camera Feed" class="overlay-image">
-        </div>
+        <div class="overlay-container">
 
-        <!-- 3️⃣ Top-Down Schematic Map -->
-        <div class="overlay-wrapper">
-          <h2>Top-Down Parking Map (True Lot Layout)</h2>
-          <img id="live-map" src="/map-image" alt="Top-Down Map" class="overlay-image">
-        </div>
-
-        <!-- Stats -->
-        <div class="overlay-stats">
-          <div class="live-stat">
-            <span class="stat-number" id="hero-available">--</span>
-            <span class="stat-label">Available Spots</span>
+          <!-- 1️⃣ Raw Live Feed -->
+          <div class="overlay-wrapper">
+            <h2>Live Camera Feed - Lot 1</h2>
+            <img id="live-raw" src="/raw-feed" alt="Raw Camera Feed" class="overlay-image">
           </div>
-          <div class="live-stat">
-            <span class="stat-number" id="hero-total">--</span>
-            <span class="stat-label">Total Spots</span>
-          </div>
-          <div class="live-stat">
-            <span class="stat-number" id="hero-occupancy">--%</span>
-            <span class="stat-label">Occupancy</span>
-          </div>
-        </div>
 
-        <div class="last-updated-small">
-          Last updated: <span id="hero-update-time">--:--:--</span>
+          <!-- 2️⃣ AI Overlay View -->
+          <div class="overlay-wrapper">
+            <h2>Camera Detection View - Lot 1</h2>
+            <!-- ✅ Changed to live feed instead of overlay image -->
+            <img id="live-overlay" src="/live-feed" alt="Live Camera Feed" class="overlay-image">
+          </div>
+
+          <!-- 3️⃣ Top-Down Schematic Map -->
+          <div class="overlay-wrapper">
+            <h2>Top-Down Parking Map (True Lot Layout) - Lot 1</h2>
+            <img id="live-map" src="/map-image" alt="Top-Down Map" class="overlay-image">
+          </div>
+
+          <!-- Stats -->
+          <div class="overlay-stats">
+            <div class="live-stat">
+              <span class="stat-number" id="hero-available">--</span>
+              <span class="stat-label">Available Spots</span>
+            </div>
+            <div class="live-stat">
+              <span class="stat-number" id="hero-total">--</span>
+              <span class="stat-label">Total Spots</span>
+            </div>
+            <div class="live-stat">
+              <span class="stat-number" id="hero-occupancy">--%</span>
+              <span class="stat-label">Occupancy</span>
+            </div>
+          </div>
+
+          <div class="last-updated-small">
+            Last updated: <span id="hero-update-time">--:--:--</span>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Mission Section -->
-  <section id="mission" class="mission">
-    <div class="container">
-      <div class="mission-content">
-        <h2>Our Parking Mission</h2>
-        <p>Our goal is to make parking more convenient and easier for students.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Technology Section -->
-  <section id="about" class="about">
-    <div class="container">
-      <div class="about-content">
-        <div class="about-text">
-          <h2>How It Works</h2>
-          <p>Using advanced computer vision and real-time data analytics, Spotection Project identifies available parking spaces and guides drivers directly to them.</p>
-        </div>
-        <div class="about-image">
-          <img src="D:/Random/Capstone Stuff/Spotection/Images/cars-in-parking-lot.jpg" alt="Campus Parking" class="campus-image">
+    <!-- Mission Section -->
+    <section id="mission" class="mission">
+      <div class="container">
+        <div class="mission-content">
+          <h2>Our Parking Mission</h2>
+          <p>Our goal is to make parking more convenient and easier for students.</p>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
+
+    <!-- Technology Section -->
+    <section id="about" class="about">
+      <div class="container">
+        <div class="about-content">
+          <div class="about-text">
+            <h2>How It Works</h2>
+            <p>Using advanced computer vision and real-time data analytics, Spotection Project identifies available parking spaces and guides drivers directly to them.</p>
+          </div>
+          <div class="about-image">
+            <img src="D:/Random/Capstone Stuff/Spotection/Images/cars-in-parking-lot.jpg" alt="Campus Parking" class="campus-image">
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Parking Lot 2 Content -->
+  <div id="parking-lot-2" class="hidden">
+    <!-- Hero Banner with Live Feed and Map -->
+    <section class="hero">
+      <div class="hero-content">
+        <h1>Live Parking Detection Dashboard</h1>
+        <p>AI-powered detection delivering real-time stall availability and map visualization</p>
+
+        <!-- Parking Lot Selection -->
+        <div class="lot-selection">
+          <button class="lot-button" id="lot1-btn-2">Parking Lot 1</button>
+          <button class="lot-button active" id="lot2-btn-2">Parking Lot 2</button>
+        </div>
+
+        <div class="overlay-container">
+
+          <!-- 1️⃣ Raw Live Feed -->
+          <div class="overlay-wrapper">
+            <h2>Live Camera Feed - Lot 2</h2>
+            <img id="live-raw-2" src="/raw-feed-2" alt="Raw Camera Feed" class="overlay-image">
+          </div>
+
+          <!-- 2️⃣ AI Overlay View -->
+          <div class="overlay-wrapper">
+            <h2>Camera Detection View - Lot 2</h2>
+            <!-- ✅ Changed to live feed instead of overlay image -->
+            <img id="live-overlay-2" src="/live-feed-2" alt="Live Camera Feed" class="overlay-image">
+          </div>
+
+          <!-- 3️⃣ Top-Down Schematic Map -->
+          <div class="overlay-wrapper">
+            <h2>Top-Down Parking Map (True Lot Layout) - Lot 2</h2>
+            <img id="live-map-2" src="/map-image-2" alt="Top-Down Map" class="overlay-image">
+          </div>
+
+          <!-- Stats -->
+          <div class="overlay-stats">
+            <div class="live-stat">
+              <span class="stat-number" id="hero-available-2">--</span>
+              <span class="stat-label">Available Spots</span>
+            </div>
+            <div class="live-stat">
+              <span class="stat-number" id="hero-total-2">--</span>
+              <span class="stat-label">Total Spots</span>
+            </div>
+            <div class="live-stat">
+              <span class="stat-number" id="hero-occupancy-2">--%</span>
+              <span class="stat-label">Occupancy</span>
+            </div>
+          </div>
+
+          <div class="last-updated-small">
+            Last updated: <span id="hero-update-time-2">--:--:--</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mission Section -->
+    <section id="mission-2" class="mission">
+      <div class="container">
+        <div class="mission-content">
+          <h2>Our Parking Mission</h2>
+          <p>Our goal is to make parking more convenient and easier for students.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Technology Section -->
+    <section id="about-2" class="about">
+      <div class="container">
+        <div class="about-content">
+          <div class="about-text">
+            <h2>How It Works</h2>
+            <p>Using advanced computer vision and real-time data analytics, Spotection Project identifies available parking spaces and guides drivers directly to them.</p>
+          </div>
+          <div class="about-image">
+            <img src="D:/Random/Capstone Stuff/Spotection/Images/cars-in-parking-lot.jpg" alt="Campus Parking" class="campus-image">
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
 
   <!-- Footer -->
   <footer class="footer">
-    <p>Spotection Project — Making Parking Easier</p>
+    <div class="footer-content">
+      <div class="footer-info">
+        <p>Spotection Project — Making Parking Easier</p>
+      </div>
+    </div>
   </footer>
 
   <!-- Script -->
   <script>
     console.log("Spotection dashboard running...");
 
-    function updateParkingData() {
-      fetch('/api/parking-data')
+    // Page navigation functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const lot1Page = document.getElementById('parking-lot-1');
+      const lot2Page = document.getElementById('parking-lot-2');
+      const lot1Link = document.getElementById('lot1-link');
+      const lot2Link = document.getElementById('lot2-link');
+      const lot1Btn = document.getElementById('lot1-btn');
+      const lot2Btn = document.getElementById('lot2-btn');
+      const lot1Btn2 = document.getElementById('lot1-btn-2');
+      const lot2Btn2 = document.getElementById('lot2-btn-2');
+
+      // Function to switch to Parking Lot 1
+      function showLot1() {
+        lot1Page.classList.remove('hidden');
+        lot2Page.classList.add('hidden');
+        
+        // Update button states
+        lot1Btn.classList.add('active');
+        lot2Btn.classList.remove('active');
+        lot1Btn2.classList.add('active');
+        lot2Btn2.classList.remove('active');
+        
+        // Update data for lot 1
+        updateParkingData(1);
+      }
+
+      // Function to switch to Parking Lot 2
+      function showLot2() {
+        lot1Page.classList.add('hidden');
+        lot2Page.classList.remove('hidden');
+        
+        // Update button states
+        lot1Btn.classList.remove('active');
+        lot2Btn.classList.add('active');
+        lot1Btn2.classList.remove('active');
+        lot2Btn2.classList.add('active');
+        
+        // Update data for lot 2
+        updateParkingData(2);
+      }
+
+      // Add event listeners
+      lot1Link.addEventListener('click', showLot1);
+      lot2Link.addEventListener('click', showLot2);
+      lot1Btn.addEventListener('click', showLot1);
+      lot2Btn.addEventListener('click', showLot2);
+      lot1Btn2.addEventListener('click', showLot1);
+      lot2Btn2.addEventListener('click', showLot2);
+
+      // Initialize with Parking Lot 1
+      showLot1();
+    });
+
+    function updateParkingData(lotNumber = 1) {
+      const endpoint = lotNumber === 1 ? '/api/parking-data' : '/api/parking-data-2';
+      
+      fetch(endpoint)
         .then(response => response.json())
         .then(data => {
-          console.log("Data received:", data);
+          console.log("Data received for lot " + lotNumber + ":", data);
 
-          // Update stats
-          document.getElementById('hero-available').textContent = data.available;
-          document.getElementById('hero-total').textContent = data.total;
-          document.getElementById('hero-occupancy').textContent =
+          // Update stats based on lot number
+          const availableId = lotNumber === 1 ? 'hero-available' : 'hero-available-2';
+          const totalId = lotNumber === 1 ? 'hero-total' : 'hero-total-2';
+          const occupancyId = lotNumber === 1 ? 'hero-occupancy' : 'hero-occupancy-2';
+          const updateTimeId = lotNumber === 1 ? 'hero-update-time' : 'hero-update-time-2';
+          const mapId = lotNumber === 1 ? 'live-map' : 'live-map-2';
+
+          document.getElementById(availableId).textContent = data.available;
+          document.getElementById(totalId).textContent = data.total;
+          document.getElementById(occupancyId).textContent =
             Math.round(100 - data.percentage) + '%';
-          document.getElementById('hero-update-time').textContent = data.last_updated;
+          document.getElementById(updateTimeId).textContent = data.last_updated;
 
           // Color logic
-          const availableElement = document.getElementById('hero-available');
+          const availableElement = document.getElementById(availableId);
           if (data.percentage > 80) {
             availableElement.style.color = '#e74c3c';
           } else if (data.percentage > 50) {
@@ -336,13 +773,17 @@
 
           // ✅ Only refresh the map now (live feed streams continuously)
           const now = new Date().getTime();
-          document.getElementById('live-map').src = '/map-image?t=' + now;
+          document.getElementById(mapId).src = lotNumber === 1 ? '/map-image?t=' + now : '/map-image-2?t=' + now;
         })
         .catch(error => console.log('Error:', error));
     }
 
-    setInterval(updateParkingData, 3000);
-    updateParkingData();
+    // Update data every 3 seconds for the current lot
+    setInterval(function() {
+      const lot1Page = document.getElementById('parking-lot-1');
+      const currentLot = lot1Page.classList.contains('hidden') ? 2 : 1;
+      updateParkingData(currentLot);
+    }, 3000);
   </script>
 </body>
 </html>
