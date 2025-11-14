@@ -22,7 +22,7 @@ def get_base_image():
         raise RuntimeError("Could not read from live stream.")
     os.makedirs("data/frames", exist_ok=True)
     snap_path = "data/frames/live_snapshot.jpg"
-    frame = cv2.flip(frame, 0)
+    
     cv2.imwrite(snap_path, frame)
     print(f"✅ Saved snapshot → {snap_path}")
     return frame

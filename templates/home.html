@@ -553,7 +553,7 @@
           <div class="overlay-wrapper">
             <h2>Camera Detection View - Lot 1</h2>
             <!-- ✅ Changed to live feed instead of overlay image -->
-            <img id="live-overlay" src="/live-feed" alt="Live Camera Feed" class="overlay-image">
+            <img id="live-overlay" src="/overlay-latest" alt="AI Overlay" class="overlay-image">
           </div>
 
           <!-- 3️⃣ Top-Down Schematic Map -->
@@ -798,6 +798,17 @@
         })
         .catch(error => console.log('Error:', error));
     }
+ 
+          function refreshOverlay() {
+            const img = document.getElementById("live-overlay");
+            if (!img) return;
+            img.src = "/overlay-latest?t=" + new Date().getTime();
+    }
+
+  // refresh overlay every 3 seconds
+  setInterval(refreshOverlay, 3000);
+
+
 
     // Update data every 3 seconds for the current lot
     setInterval(function() {
