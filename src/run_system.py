@@ -1,14 +1,22 @@
 import os, json, time, glob, shutil, cv2, numpy as np
 from ultralytics import YOLO
 from datetime import datetime
+from collections import defaultdict, deque
 from src.db import save_detection_result
+
+# Optional shapely for better polygon overlap
+try:
+    from shapely.geometry import Polygon, box as shapely_box
+    SHAPELY_OK = True
+except Exception:
+    SHAPELY_OK = False
 
 # ------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------
 CONFIG = "data/lot_config.json"
 MODEL_PATH = "yolov8s.pt"
-CONF = 0.3
+CONF = 0.25                     # YOLO confidence
 VEHICLE_CLASSES = {2, 3, 5, 7}  # car, motorcycle, bus, truck
 
 FRAMES_DIR = "data/frames"
@@ -18,6 +26,13 @@ MAP_DIR = "maps"
 
 CHECK_INTERVAL = 2
 MAX_KEEP = 5  # Keep only 5 of each type to stay lightweight
+
+# Temporal smoothing config
+HISTORY_LEN = 3  # how many frames to smooth over
+stall_history = defaultdict(lambda: deque(maxlen=HISTORY_LEN))
+
+# Detection filters
+FILTER_MIN_AREA = 1200  # ignore tiny blobs (px^2)
 
 
 # ------------------------------------------------------------
@@ -34,14 +49,19 @@ def load_config():
         raise FileNotFoundError("Missing lot_config.json. Run stall_config_poly.py first.")
     with open(CONFIG, "r") as f:
         cfg = json.load(f)
+
     stalls = []
     for s in cfg.get("stalls", []):
         pts = np.array(s["points"], dtype=np.int32)
-        stalls.append({
+        stall = {
             "id": str(s["id"]),
             "pts": pts,
             "lane": s.get("lane", 1)
-        })
+        }
+        if SHAPELY_OK:
+            # Precompute polygon for better overlap math
+            stall["poly"] = Polygon(pts)
+        stalls.append(stall)
     return stalls
 
 
@@ -61,14 +81,10 @@ def draw_overlay(img, stalls, occupied_map, boxes=None):
     """Draw YOLO detections + stall overlays"""
     out = img.copy()
 
-    # --- Draw YOLO boxes and center points ---
+    # --- Draw YOLO boxes ---
     if boxes:
         for (x1, y1, x2, y2) in boxes:
-            cx, cy = int((x1 + x2) / 2), int((y1 + y2) / 2)
             cv2.rectangle(out, (int(x1), int(y1)), (int(x2), int(y2)), (255, 255, 0), 2)
-            cv2.circle(out, (cx, cy), 5, (0, 0, 255), -1)
-            cv2.putText(out, "C", (cx - 5, cy - 8),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
     # --- Stall outlines ---
     for s in stalls:
@@ -135,59 +151,138 @@ def draw_topdown_map(stalls, occupied_map, output_dir=MAP_DIR):
 
 
 # ------------------------------------------------------------
+# Stall assignment helpers
+# ------------------------------------------------------------
+def compute_overlap_ratio(stall, box_coords):
+    """
+    Compute how much of the stall is covered by the detection box.
+    Returns overlap_ratio (0-1).
+    """
+    x1, y1, x2, y2 = box_coords
+
+    if SHAPELY_OK and "poly" in stall:
+        stall_poly = stall["poly"]
+        bbox_poly = shapely_box(x1, y1, x2, y2)
+        inter_area = stall_poly.intersection(bbox_poly).area
+        if stall_poly.area <= 0:
+            return 0.0
+        return inter_area / stall_poly.area
+
+    # Fallback: use stall bounding rectangle overlap
+    contour = stall["pts"]
+    sx, sy, sw, sh = cv2.boundingRect(contour)
+
+    ix1, iy1 = max(x1, sx), max(y1, sy)
+    ix2, iy2 = min(x2, sx + sw), min(y2, sy + sh)
+    inter_w, inter_h = max(0, ix2 - ix1), max(0, iy2 - iy1)
+    if sw * sh <= 0:
+        return 0.0
+    return (inter_w * inter_h) / (sw * sh)
+
+
+def assign_occupancy(stalls, boxes, overlap_thresh=0.20):
+    """
+    Assign boxes to stalls based on max overlap ratio.
+    Returns dict: {stall_id: bool}
+    """
+    occupied = {s["id"]: False for s in stalls}
+
+    for box in boxes:
+        best_pid = None
+        best_ov = 0.0
+        for s in stalls:
+            ov = compute_overlap_ratio(s, box)
+            if ov > best_ov:
+                best_ov = ov
+                best_pid = s["id"]
+        if best_pid is not None and best_ov >= overlap_thresh:
+            occupied[best_pid] = True
+
+    return occupied
+
+
+def smooth_occupancy(occupied_raw):
+    """
+    Temporal smoothing over last HISTORY_LEN frames.
+    Uses majority vote for each stall.
+    """
+    # update history
+    for pid, occ in occupied_raw.items():
+        stall_history[pid].append(1 if occ else 0)
+
+    smoothed = {}
+    for pid, hist in stall_history.items():
+        if not hist:
+            continue
+        ones = sum(hist)
+        zeros = len(hist) - ones
+        smoothed[pid] = ones >= zeros
+    return smoothed
+
+
+# ------------------------------------------------------------
 # YOLO Detection + System Loop
 # ------------------------------------------------------------
+
+
+
 def detect_frame(image_path, model):
-    """Detect vehicles + occupancy from file path and visualize adjusted boxes."""
+    """Detect vehicles + occupancy from file path and visualize."""
     img = cv2.imread(image_path)
     if img is None:
         print(f"⚠️ Could not read {image_path}")
         return None, None
 
-    stalls = load_config()
-    res = model.predict(source=img, conf=CONF, verbose=False)[0]
+    # Medium-strength brightness/contrast fix
+    
 
+    stalls = load_config()
+
+    # Higher resolution for better small-car detection
+    res = model.predict(source=img, conf=CONF, imgsz=1280, verbose=False)[0]
+
+    # Collect YOLO detections
     boxes = []
     for b in res.boxes:
         cls_id = int(b.cls.item())
         if cls_id in VEHICLE_CLASSES:
-            boxes.append(tuple(map(float, b.xyxy[0].tolist())))
+            x1, y1, x2, y2 = map(float, b.xyxy[0].tolist())
+            # Filter very small boxes
+            area = (x2 - x1) * (y2 - y1)
+            if area < FILTER_MIN_AREA:
+                continue
+            boxes.append((x1, y1, x2, y2))
 
-    occupied = {s["id"]: False for s in stalls}
-
-    for s in stalls:
-        contour = np.array(s["pts"], np.int32)
-        pid = s["id"]
-        sx, sy, sw, sh = cv2.boundingRect(contour)
-
-        for box in boxes[:]:
-            x1, y1, x2, y2 = box
-            shrink = 15
-            x1 += shrink; y1 += shrink
-            x2 -= shrink; y2 -= shrink
-            cx = int((x1 + x2) / 2)
-            cy = int((y1 + y2) / 2) + 15
-            in_poly = cv2.pointPolygonTest(contour, (cx, cy), False) >= 0
-            ix1, iy1 = max(x1, sx), max(y1, sy)
-            ix2, iy2 = min(x2, sx + sw), min(y2, sy + sh)
-            inter_w, inter_h = max(0, ix2 - ix1), max(0, iy2 - iy1)
-            overlap = (inter_w * inter_h) / (sw * sh + 1e-6)
-            if in_poly or overlap > 0.25:
-                occupied[pid] = True
-                boxes.remove(box)
+    # Optional: only keep boxes that overlap at least one stall a bit
+    filtered_boxes = []
+    for box in boxes:
+        keep = False
+        for s in stalls:
+            if compute_overlap_ratio(s, box) > 0.05:
+                keep = True
                 break
+        if keep:
+            filtered_boxes.append(box)
+    boxes = filtered_boxes
 
-    overlay = draw_overlay(img, stalls, occupied, boxes)
+    # Raw occupancy from geometric overlap
+    occupied_raw = assign_occupancy(stalls, boxes)
+
+    # Temporal smoothing
+    occupied_smooth = smooth_occupancy(occupied_raw)
+
+    # Draw overlay & map using smoothed occupancy
+    overlay = draw_overlay(img, stalls, occupied_smooth, boxes)
     ts = int(time.time() * 1000)
     overlay_path = os.path.join(OVERLAYS_DIR, f"overlay_{ts}.jpg")
     cv2.imwrite(overlay_path, overlay)
-    draw_topdown_map(stalls, occupied)
+    draw_topdown_map(stalls, occupied_smooth)
 
     # 🧹 Cleanup excess overlays/maps
     cleanup_folder(OVERLAYS_DIR, MAX_KEEP)
     cleanup_folder(MAP_DIR, MAX_KEEP)
 
-    return overlay_path, occupied
+    return overlay_path, occupied_smooth
 
 
 def main():

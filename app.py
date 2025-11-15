@@ -71,10 +71,19 @@ def raw_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
-@app.route('/live-feed')
-def live_feed():
-    return Response(generate_overlay_feed(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+@app.route('/overlay-latest')
+def overlay_latest():
+    try:
+        OVERLAY_DIR = "overlays"
+        jpgs = [f for f in os.listdir(OVERLAY_DIR) if f.lower().endswith(".jpg")]
+        if not jpgs:
+            return send_file(FALLBACK_IMAGE, mimetype="image/jpeg")
+        latest = max(jpgs, key=lambda f: os.path.getmtime(os.path.join(OVERLAY_DIR, f)))
+        return send_file(os.path.join(OVERLAY_DIR, latest), mimetype="image/jpeg")
+    except Exception as e:
+        print("overlay latest error:", e)
+        return send_file(FALLBACK_IMAGE, mimetype="image/jpeg")
+
 
 
 @app.route('/api/parking-data')
