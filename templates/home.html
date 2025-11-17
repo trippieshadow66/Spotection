@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Spotection Project - Smart Parking Solutions</title>
   <style>
+    /* (same CSS you provided – unchanged except for what was already there) */
     /* Reset and Base Styles */
     * {
       margin: 0;
@@ -130,9 +131,9 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: 
-          radial-gradient(circle at 20% 80%, rgba(241, 196, 15, 0.1) 0%, transparent 50%),
-          radial-gradient(circle at 80% 20%, rgba(46, 204, 113, 0.1) 0%, transparent 50%);
+      background:
+        radial-gradient(circle at 20% 80%, rgba(241, 196, 15, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(46, 204, 113, 0.1) 0%, transparent 50%);
       z-index: 1;
     }
 
@@ -157,32 +158,6 @@
       margin-bottom: 2.5rem;
       opacity: 0.9;
       animation: slideInFromTop 0.8s ease-out 0.4s both;
-    }
-
-    /* Call to Action Button */
-    .cta-button {
-      background: linear-gradient(135deg, var(--parking-yellow), var(--parking-orange));
-      color: var(--parking-navy);
-      border: none;
-      padding: 15px 40px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 5px 20px rgba(241, 196, 15, 0.3);
-    }
-
-    .cta-button:hover {
-      transform: translateY(-3px) scale(1.05);
-      box-shadow: 0 10px 30px rgba(241, 196, 15, 0.5);
-      color: var(--background-dark);
-    }
-
-    .cta-button:active {
-      transform: translateY(-1px) scale(1.02);
     }
 
     /* Overlay Section */
@@ -350,130 +325,6 @@
       box-shadow: 0 15px 40px rgba(241, 196, 15, 0.2);
     }
 
-    /* Live Parking Section */
-    .live-parking {
-      padding: 80px 0;
-      background: linear-gradient(135deg, var(--parking-grey) 0%, var(--parking-navy) 100%);
-      border-top: 1px solid rgba(241, 196, 15, 0.3);
-      border-bottom: 1px solid rgba(241, 196, 15, 0.3);
-    }
-
-    .parking-stats h2 {
-      color: var(--parking-yellow);
-      font-size: 2.5rem;
-      margin-bottom: 2rem;
-      text-align: center;
-      animation: slideInFromTop 0.8s ease-out;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 2rem;
-      margin-bottom: 2rem;
-    }
-
-    .stat-card {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 2rem;
-      border-radius: 12px;
-      text-align: center;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      transition: all 0.3s ease;
-    }
-
-    .stat-card:hover {
-      transform: translateY(-5px);
-      background: rgba(255, 255, 255, 0.15);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    }
-
-    .stat-card h3 {
-      font-size: 2.5rem;
-      margin-bottom: 0.5rem;
-      color: var(--text-lighter);
-    }
-
-    .stat-card p {
-      color: var(--text-light);
-      font-size: 1.1rem;
-    }
-
-    .last-updated {
-      text-align: center;
-      color: var(--parking-yellow);
-      font-style: italic;
-    }
-
-    /* Footer */
-    .footer {
-      background-color: var(--parking-navy);
-      color: var(--text-light);
-      padding: 40px 0;
-      animation: fadeIn 0.8s ease-out;
-      border-top: 3px solid var(--parking-yellow);
-    }
-
-    .footer-content {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .footer-info p {
-      margin-bottom: 0.5rem;
-      transition: opacity 0.3s ease;
-      text-align: center;
-      font-size: 1.1rem;
-      color: var(--parking-yellow);
-    }
-
-    .footer-info:hover p {
-      opacity: 0.9;
-    }
-
-    /* Animation Keyframes */
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes slideInFromTop {
-      from { opacity: 0; transform: translateY(-50px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes slideInFromLeft {
-      from { opacity: 0; transform: translateX(-50px); }
-      to { opacity: 1; transform: translateX(0); }
-    }
-
-    @keyframes slideInFromRight {
-      from { opacity: 0; transform: translateX(50px); }
-      to { opacity: 1; transform: translateX(0); }
-    }
-
-    /* Responsive Design */
-    @media (max-width: 768px) {
-      .nav-menu { flex-direction: column; gap: 1rem; }
-      .hero-content h1 { font-size: 2.5rem; }
-      .about-content { grid-template-columns: 1fr; }
-      .campus-image { height: 250px; }
-      .overlay-image { max-height: 300px; }
-      .overlay-stats { flex-direction: column; gap: 0.5rem; padding: 1rem; }
-      .stat-number { font-size: 2rem; }
-      .stats-grid { grid-template-columns: 1fr; }
-      .stat-card { padding: 1.5rem; }
-      .overlay-container { padding: 20px; }
-      .overlay-wrapper { margin-bottom: 30px; padding: 15px; }
-    }
-
     /* Parking Lot Selection */
     .lot-selection {
       display: flex;
@@ -505,9 +356,49 @@
       color: var(--parking-navy);
     }
 
-    /* Hidden class for page switching */
-    .hidden {
-      display: none;
+    .hidden { display: none; }
+
+    /* Footer */
+    .footer {
+      background-color: var(--parking-navy);
+      color: var(--text-light);
+      padding: 40px 0;
+      animation: fadeIn 0.8s ease-out;
+      border-top: 3px solid var(--parking-yellow);
+    }
+
+    .footer-content {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .footer-info p {
+      margin-bottom: 0.5rem;
+      transition: opacity 0.3s ease;
+      text-align: center;
+      font-size: 1.1rem;
+      color: var(--parking-yellow);
+    }
+
+    .footer-info:hover p {
+      opacity: 0.9;
+    }
+
+    /* Animations (unchanged) */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideInFromTop { from { opacity: 0; transform: translateY(-50px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideInFromLeft { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes slideInFromRight { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+
+    @media (max-width: 768px) {
+      .nav-menu { flex-direction: column; gap: 1rem; }
+      .hero-content h1 { font-size: 2.5rem; }
+      .about-content { grid-template-columns: 1fr; }
+      .campus-image { height: 250px; }
+      .overlay-image { max-height: 300px; }
+      .overlay-stats { flex-direction: column; gap: 0.5rem; padding: 1rem; }
     }
   </style>
 </head>
@@ -529,13 +420,11 @@
 
   <!-- Parking Lot 1 Content -->
   <div id="parking-lot-1">
-    <!-- Hero Banner with Live Feed and Map -->
     <section class="hero">
       <div class="hero-content">
         <h1>Live Parking Detection Dashboard</h1>
         <p>AI-powered detection delivering real-time stall availability and map visualization</p>
 
-        <!-- Parking Lot Selection -->
         <div class="lot-selection">
           <button class="lot-button active" id="lot1-btn">Parking Lot 1</button>
           <button class="lot-button" id="lot2-btn">Parking Lot 2</button>
@@ -543,20 +432,19 @@
 
         <div class="overlay-container">
 
-          <!-- 1️⃣ Raw Live Feed -->
+          <!-- Raw Live Feed -->
           <div class="overlay-wrapper">
             <h2>Live Camera Feed - Lot 1</h2>
             <img id="live-raw" src="/raw-feed" alt="Raw Camera Feed" class="overlay-image">
           </div>
 
-          <!-- 2️⃣ AI Overlay View -->
+          <!-- AI Overlay View -->
           <div class="overlay-wrapper">
             <h2>Camera Detection View - Lot 1</h2>
-            <!-- ✅ Changed to live feed instead of overlay image -->
             <img id="live-overlay" src="/overlay-latest" alt="AI Overlay" class="overlay-image">
           </div>
 
-          <!-- 3️⃣ Top-Down Schematic Map -->
+          <!-- Top-Down Map -->
           <div class="overlay-wrapper">
             <h2>Top-Down Parking Map (True Lot Layout) - Lot 1</h2>
             <img id="live-map" src="/map-image" alt="Top-Down Map" class="overlay-image">
@@ -613,34 +501,30 @@
 
   <!-- Parking Lot 2 Content -->
   <div id="parking-lot-2" class="hidden">
-    <!-- Hero Banner with Live Feed and Map -->
     <section class="hero">
       <div class="hero-content">
         <h1>Live Parking Detection Dashboard</h1>
         <p>AI-powered detection delivering real-time stall availability and map visualization</p>
 
-        <!-- Parking Lot Selection -->
         <div class="lot-selection">
           <button class="lot-button" id="lot1-btn-2">Parking Lot 1</button>
           <button class="lot-button active" id="lot2-btn-2">Parking Lot 2</button>
         </div>
 
         <div class="overlay-container">
-
-          <!-- 1️⃣ Raw Live Feed -->
+          <!-- Raw Live Feed -->
           <div class="overlay-wrapper">
             <h2>Live Camera Feed - Lot 2</h2>
             <img id="live-raw-2" src="/raw-feed-2" alt="Raw Camera Feed" class="overlay-image">
           </div>
 
-          <!-- 2️⃣ AI Overlay View -->
+          <!-- AI Overlay View -->
           <div class="overlay-wrapper">
             <h2>Camera Detection View - Lot 2</h2>
-            <!-- ✅ Changed to live feed instead of overlay image -->
-            <img id="live-overlay-2" src="/live-feed-2" alt="Live Camera Feed" class="overlay-image">
+            <img id="live-overlay-2" src="/overlay-latest-2" alt="AI Overlay Lot 2" class="overlay-image">
           </div>
 
-          <!-- 3️⃣ Top-Down Schematic Map -->
+          <!-- Top-Down Map -->
           <div class="overlay-wrapper">
             <h2>Top-Down Parking Map (True Lot Layout) - Lot 2</h2>
             <img id="live-map-2" src="/map-image-2" alt="Top-Down Map" class="overlay-image">
@@ -708,7 +592,6 @@
   <script>
     console.log("Spotection dashboard running...");
 
-    // Page navigation functionality
     document.addEventListener('DOMContentLoaded', function() {
       const lot1Page = document.getElementById('parking-lot-1');
       const lot2Page = document.getElementById('parking-lot-2');
@@ -719,57 +602,48 @@
       const lot1Btn2 = document.getElementById('lot1-btn-2');
       const lot2Btn2 = document.getElementById('lot2-btn-2');
 
-      // Function to switch to Parking Lot 1
       function showLot1() {
         lot1Page.classList.remove('hidden');
         lot2Page.classList.add('hidden');
-        
-        // Update button states
+
         lot1Btn.classList.add('active');
         lot2Btn.classList.remove('active');
         lot1Btn2.classList.add('active');
         lot2Btn2.classList.remove('active');
-        
-        // Update data for lot 1
+
         updateParkingData(1);
       }
 
-      // Function to switch to Parking Lot 2
       function showLot2() {
         lot1Page.classList.add('hidden');
         lot2Page.classList.remove('hidden');
-        
-        // Update button states
+
         lot1Btn.classList.remove('active');
         lot2Btn.classList.add('active');
         lot1Btn2.classList.remove('active');
         lot2Btn2.classList.add('active');
-        
-        // Update data for lot 2
+
         updateParkingData(2);
       }
 
-      // Add event listeners
-      lot1Link.addEventListener('click', showLot1);
-      lot2Link.addEventListener('click', showLot2);
+      lot1Link.addEventListener('click', function(e) { e.preventDefault(); showLot1(); });
+      lot2Link.addEventListener('click', function(e) { e.preventDefault(); showLot2(); });
       lot1Btn.addEventListener('click', showLot1);
       lot2Btn.addEventListener('click', showLot2);
       lot1Btn2.addEventListener('click', showLot1);
       lot2Btn2.addEventListener('click', showLot2);
 
-      // Initialize with Parking Lot 1
       showLot1();
     });
 
     function updateParkingData(lotNumber = 1) {
       const endpoint = lotNumber === 1 ? '/api/parking-data' : '/api/parking-data-2';
-      
+
       fetch(endpoint)
         .then(response => response.json())
         .then(data => {
           console.log("Data received for lot " + lotNumber + ":", data);
 
-          // Update stats based on lot number
           const availableId = lotNumber === 1 ? 'hero-available' : 'hero-available-2';
           const totalId = lotNumber === 1 ? 'hero-total' : 'hero-total-2';
           const occupancyId = lotNumber === 1 ? 'hero-occupancy' : 'hero-occupancy-2';
@@ -782,7 +656,6 @@
             Math.round(100 - data.percentage) + '%';
           document.getElementById(updateTimeId).textContent = data.last_updated;
 
-          // Color logic
           const availableElement = document.getElementById(availableId);
           if (data.percentage > 80) {
             availableElement.style.color = '#e74c3c';
@@ -792,30 +665,28 @@
             availableElement.style.color = '#27ae60';
           }
 
-          // ✅ Only refresh the map now (live feed streams continuously)
           const now = new Date().getTime();
-          document.getElementById(mapId).src = lotNumber === 1 ? '/map-image?t=' + now : '/map-image-2?t=' + now;
+          document.getElementById(mapId).src =
+            (lotNumber === 1 ? '/map-image?t=' : '/map-image-2?t=') + now;
         })
         .catch(error => console.log('Error:', error));
     }
- 
-          function refreshOverlay() {
-            const img = document.getElementById("live-overlay");
-            if (!img) return;
-            img.src = "/overlay-latest?t=" + new Date().getTime();
+
+    function refreshOverlay() {
+      const img1 = document.getElementById("live-overlay");
+      if (img1) img1.src = "/overlay-latest?t=" + new Date().getTime();
+
+      const img2 = document.getElementById("live-overlay-2");
+      if (img2) img2.src = "/overlay-latest-2?t=" + new Date().getTime();
     }
 
-  // refresh overlay every 3 seconds
-  setInterval(refreshOverlay, 3000);
-
-
-
-    // Update data every 3 seconds for the current lot
+    // Refresh overlays and stats every 4 seconds
     setInterval(function() {
       const lot1Page = document.getElementById('parking-lot-1');
       const currentLot = lot1Page.classList.contains('hidden') ? 2 : 1;
       updateParkingData(currentLot);
-    }, 3000);
+      refreshOverlay();
+    }, 4000);
   </script>
 </body>
 </html>

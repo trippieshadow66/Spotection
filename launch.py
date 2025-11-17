@@ -1,48 +1,41 @@
-import subprocess
-import time
-import sys
-import os
+import subprocess, time, sys
+
+LOTS = [1, 2]
+
 
 def main():
-    print("=" * 50)
-    print("🚀 STARTING SPOTECTION FULL SYSTEM")
-    print("=" * 50)
-    
-    # Step 1: Initialize database
-    print("📊 Step 1: Initializing database...")
-    try:
-        subprocess.run([sys.executable, "-m", "src.db"], check=True)
-        print("✅ Database initialized successfully")
-    except Exception as e:
-        print(f"❌ Database initialization failed: {e}")
-        return
-    
-    # Step 2: Start camera capture system (in background)
-    print("📷 Step 2: Starting camera capture...")
-    try:
-        # Start capture as a separate process
-        capture_process = subprocess.Popen([sys.executable, "-m", "src.capture"])
-        print("✅ Camera capture started in background")
-    except Exception as e:
-        print(f"❌ Camera capture failed: {e}")
-        return
-    
-    # Step 3: Wait a moment for systems to initialize
-    print("⏳ Step 3: Waiting for systems to initialize...")
+    print("🚀 Starting Spotection Multi-Lot System\n")
+
+    print("📊 Initializing DB…")
+    subprocess.run([sys.executable, "-m", "src.db"])
+
+    cap_processes = []
+    detect_processes = []
+
+    for lot in LOTS:
+        print(f"📷 Starting capture for lot {lot}")
+        p = subprocess.Popen([sys.executable, "-m", "src.capture", "--lot", str(lot)])
+        cap_processes.append(p)
+
     time.sleep(5)
-    
-    # Step 4: Start the web dashboard
-    print("🌐 Step 4: Starting web dashboard...")
-    print("=" * 50)
-    print("Your parking system will be available at: http://localhost:5000")
-    print("=" * 50)
-    
-    # This will keep running until you press Ctrl+C
+
+    for lot in LOTS:
+        print(f"🧠 Starting detection for lot {lot}")
+        p = subprocess.Popen([sys.executable, "-m", "src.detect", "--lot", str(lot)])
+        detect_processes.append(p)
+
+    print("🌍 Starting Flask web dashboard… http://localhost:5000")
     try:
         subprocess.run([sys.executable, "app.py"])
     except KeyboardInterrupt:
-        print("\n🛑 Shutting down Spotection system...")
-        capture_process.terminate()
+        print("🛑 Shutting down…")
+
+    for p in cap_processes + detect_processes:
+        try:
+            p.terminate()
+        except:
+            pass
+
 
 if __name__ == "__main__":
     main()

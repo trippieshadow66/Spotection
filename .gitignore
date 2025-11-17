@@ -27,6 +27,7 @@ data/occupancy/
 maps/
 data/lot_config.json
 data/spotection.db
+data/
 # YOLO / model weights (large binary files)
 *.pt
 
