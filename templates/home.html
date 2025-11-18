@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Spotection Project - Smart Parking Solutions</title>
   <style>
-    /* (same CSS you provided – unchanged except for what was already there) */
     /* Reset and Base Styles */
     * {
       margin: 0;
@@ -45,6 +44,299 @@
       padding: 0 20px;
     }
 
+    /* Dropdown Styles */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropdown-toggle {
+      background: var(--parking-grey);
+      color: var(--text-light);
+      border: 2px solid var(--parking-yellow);
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-width: 200px;
+      justify-content: space-between;
+    }
+
+    .dropdown-toggle:hover {
+      background: var(--parking-yellow);
+      color: var(--parking-navy);
+      transform: translateY(-2px);
+    }
+
+    .dropdown-toggle::after {
+      content: '▼';
+      font-size: 0.8rem;
+      transition: transform 0.3s ease;
+    }
+
+    .dropdown-toggle.open::after {
+      transform: rotate(180deg);
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--parking-navy);
+      border: 2px solid var(--parking-yellow);
+      border-radius: 8px;
+      margin-top: 0.5rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      display: none;
+      overflow: hidden;
+    }
+
+    .dropdown-menu.show {
+      display: block;
+      animation: fadeInUp 0.3s ease;
+    }
+
+    .dropdown-item {
+      padding: 1rem 1.5rem;
+      color: var(--text-light);
+      text-decoration: none;
+      display: block;
+      transition: all 0.3s ease;
+      border-bottom: 1px solid var(--parking-grey);
+      cursor: pointer;
+    }
+
+    .dropdown-item:last-child {
+      border-bottom: none;
+    }
+
+    .dropdown-item:hover {
+      background: var(--parking-yellow);
+      color: var(--parking-navy);
+    }
+
+    .dropdown-item.active {
+      background: var(--parking-yellow);
+      color: var(--parking-navy);
+      font-weight: bold;
+    }
+
+    /* Login System Styles */
+    .login-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(26, 37, 47, 0.95);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      backdrop-filter: blur(10px);
+    }
+
+    .login-container {
+      background: var(--parking-navy);
+      padding: 3rem;
+      border-radius: 15px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      border: 2px solid var(--parking-yellow);
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .login-container h2 {
+      color: var(--parking-yellow);
+      margin-bottom: 1.5rem;
+      font-size: 2rem;
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .form-group {
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--text-light);
+      font-weight: bold;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid var(--parking-grey);
+      border-radius: 8px;
+      background: var(--background-dark);
+      color: var(--text-light);
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--parking-yellow);
+    }
+
+    .login-button {
+      background: linear-gradient(135deg, var(--parking-yellow), var(--parking-orange));
+      color: var(--parking-navy);
+      border: none;
+      padding: 15px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 1rem;
+    }
+
+    .login-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(241, 196, 15, 0.4);
+    }
+
+    .guest-button {
+      background: var(--parking-grey);
+      color: var(--text-light);
+      border: 2px solid var(--parking-yellow);
+      padding: 15px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 0.5rem;
+      width: 100%;
+    }
+
+    .guest-button:hover {
+      background: var(--parking-yellow);
+      color: var(--parking-navy);
+      transform: translateY(-2px);
+    }
+
+    .login-error {
+      color: #e74c3c;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .admin-controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-left: 2rem;
+    }
+
+    .admin-button {
+      background: var(--parking-green);
+      color: var(--text-lighter);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+
+    .admin-button:hover {
+      background: var(--parking-lime);
+      transform: translateY(-2px);
+    }
+
+    .delete-button {
+      background: #e74c3c;
+    }
+
+    .delete-button:hover {
+      background: #c0392b;
+    }
+
+    .logout-button {
+      background: var(--parking-grey);
+      color: var(--text-light);
+      border: 1px solid var(--parking-yellow);
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .logout-button:hover {
+      background: var(--parking-yellow);
+      color: var(--parking-navy);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+      backdrop-filter: blur(5px);
+    }
+
+    .modal {
+      background: var(--parking-navy);
+      padding: 2rem;
+      border-radius: 15px;
+      border: 2px solid var(--parking-yellow);
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .modal h3 {
+      color: var(--parking-yellow);
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 2rem;
+    }
+
+    .modal-confirm {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .modal-cancel {
+      background: var(--parking-grey);
+      color: var(--text-light);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
     /* Navigation */
     .navbar {
       background-color: var(--parking-navy);
@@ -82,6 +374,7 @@
       display: flex;
       list-style: none;
       gap: 2rem;
+      align-items: center;
     }
 
     .nav-menu a {
@@ -325,38 +618,7 @@
       box-shadow: 0 15px 40px rgba(241, 196, 15, 0.2);
     }
 
-    /* Parking Lot Selection */
-    .lot-selection {
-      display: flex;
-      justify-content: center;
-      gap: 2rem;
-      margin: 3rem 0;
-    }
-
-    .lot-button {
-      background: var(--parking-grey);
-      color: var(--text-light);
-      border: 2px solid var(--parking-yellow);
-      padding: 1rem 2rem;
-      border-radius: 8px;
-      font-size: 1.1rem;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .lot-button:hover {
-      background: var(--parking-yellow);
-      color: var(--parking-navy);
-      transform: translateY(-3px);
-    }
-
-    .lot-button.active {
-      background: var(--parking-yellow);
-      color: var(--parking-navy);
-    }
-
-    .hidden { display: none; }
+    .hidden { display: none !important; }
 
     /* Footer */
     .footer {
@@ -385,7 +647,7 @@
       opacity: 0.9;
     }
 
-    /* Animations (unchanged) */
+    /* Animations */
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes slideInFromTop { from { opacity: 0; transform: translateY(-50px); } to { opacity: 1; transform: translateY(0); } }
@@ -399,10 +661,77 @@
       .campus-image { height: 250px; }
       .overlay-image { max-height: 300px; }
       .overlay-stats { flex-direction: column; gap: 0.5rem; padding: 1rem; }
+      .admin-controls { flex-direction: column; margin-left: 0; }
+      .dropdown-toggle { min-width: 180px; }
     }
   </style>
 </head>
 <body>
+  <!-- Login Overlay -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-container">
+      <h2>Spotection Project</h2>
+      <form id="loginForm" class="login-form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" placeholder="Enter your username" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" class="login-button">Login as Admin</button>
+        <button type="button" id="guestButton" class="guest-button">Continue as Guest</button>
+        <div id="loginError" class="login-error">
+          Invalid username or password
+        </div>
+      </form>
+      <div style="margin-top: 2rem; color: var(--text-light); font-size: 0.9rem;">
+        <p>Admin Credentials:</p>
+        <p>Username: <strong>admin</strong></p>
+        <p>Password: <strong>spotection123</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Delete Parking Lot</h3>
+      <p>Are you sure you want to delete "<span id="deleteLotName"></span>"?</p>
+      <p style="color: #e74c3c; font-size: 0.9rem; margin-top: 1rem;">This action cannot be undone.</p>
+      <div class="modal-buttons">
+        <button id="confirmDelete" class="modal-confirm">Delete</button>
+        <button id="cancelDelete" class="modal-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Parking Lot Modal -->
+  <div id="addLotModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Add New Parking Lot</h3>
+      <form id="addLotForm" class="login-form">
+        <div class="form-group">
+          <label for="lotName">Parking Lot Name</label>
+          <input type="text" id="lotName" placeholder="e.g., West Campus Lot" required>
+        </div>
+        <div class="form-group">
+          <label for="totalSpots">Total Parking Spots</label>
+          <input type="number" id="totalSpots" placeholder="e.g., 50" required min="1">
+        </div>
+        <div class="form-group">
+          <label for="cameraUrl">Camera Feed URL (Optional)</label>
+          <input type="text" id="cameraUrl" placeholder="http://...">
+        </div>
+        <div class="modal-buttons">
+          <button type="submit" class="login-button">Add Parking Lot</button>
+          <button type="button" id="cancelAdd" class="modal-cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Navigation -->
   <nav class="navbar">
     <div class="nav-container">
@@ -412,281 +741,479 @@
       <ul class="nav-menu">
         <li><a href="#mission">Mission</a></li>
         <li><a href="#about">Technology</a></li>
-        <li><a href="#" id="lot1-link">Parking Lot 1</a></li>
-        <li><a href="#" id="lot2-link">Parking Lot 2</a></li>
+        <!-- Dynamic parking lot dropdown will be added here -->
+        <div id="parkingLotDropdown"></div>
+        <div class="admin-controls hidden" id="adminControls">
+          <button class="admin-button" id="addLotButton">Add Parking Lot</button>
+          <button class="admin-button delete-button" id="deleteLotButton">Delete Current Lot</button>
+          <button class="logout-button" id="logoutButton">Logout</button>
+        </div>
+        <div class="admin-controls hidden" id="guestControls">
+          <button class="logout-button" id="guestLogoutButton">Switch to Admin</button>
+        </div>
       </ul>
     </div>
   </nav>
 
-  <!-- Parking Lot 1 Content -->
-  <div id="parking-lot-1">
-    <section class="hero">
-      <div class="hero-content">
-        <h1>Live Parking Detection Dashboard</h1>
-        <p>AI-powered detection delivering real-time stall availability and map visualization</p>
+  <!-- Main Content -->
+  <div id="mainContent" class="hidden">
+    <!-- Dynamic parking lot content will be added here -->
+    <div id="parkingLotContent"></div>
 
-        <div class="lot-selection">
-          <button class="lot-button active" id="lot1-btn">Parking Lot 1</button>
-          <button class="lot-button" id="lot2-btn">Parking Lot 2</button>
-        </div>
-
-        <div class="overlay-container">
-
-          <!-- Raw Live Feed -->
-          <div class="overlay-wrapper">
-            <h2>Live Camera Feed - Lot 1</h2>
-            <img id="live-raw" src="/raw-feed" alt="Raw Camera Feed" class="overlay-image">
-          </div>
-
-          <!-- AI Overlay View -->
-          <div class="overlay-wrapper">
-            <h2>Camera Detection View - Lot 1</h2>
-            <img id="live-overlay" src="/overlay-latest" alt="AI Overlay" class="overlay-image">
-          </div>
-
-          <!-- Top-Down Map -->
-          <div class="overlay-wrapper">
-            <h2>Top-Down Parking Map (True Lot Layout) - Lot 1</h2>
-            <img id="live-map" src="/map-image" alt="Top-Down Map" class="overlay-image">
-          </div>
-
-          <!-- Stats -->
-          <div class="overlay-stats">
-            <div class="live-stat">
-              <span class="stat-number" id="hero-available">--</span>
-              <span class="stat-label">Available Spots</span>
-            </div>
-            <div class="live-stat">
-              <span class="stat-number" id="hero-total">--</span>
-              <span class="stat-label">Total Spots</span>
-            </div>
-            <div class="live-stat">
-              <span class="stat-number" id="hero-occupancy">--%</span>
-              <span class="stat-label">Occupancy</span>
-            </div>
-          </div>
-
-          <div class="last-updated-small">
-            Last updated: <span id="hero-update-time">--:--:--</span>
-          </div>
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-content">
+        <div class="footer-info">
+          <p>Spotection Project — Making Parking Easier</p>
         </div>
       </div>
-    </section>
-
-    <!-- Mission Section -->
-    <section id="mission" class="mission">
-      <div class="container">
-        <div class="mission-content">
-          <h2>Our Parking Mission</h2>
-          <p>Our goal is to make parking more convenient and easier for students.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Technology Section -->
-    <section id="about" class="about">
-      <div class="container">
-        <div class="about-content">
-          <div class="about-text">
-            <h2>How It Works</h2>
-            <p>Using advanced computer vision and real-time data analytics, Spotection Project identifies available parking spaces and guides drivers directly to them.</p>
-          </div>
-          <div class="about-image">
-            <img src="{{ url_for('static', filename='images/image.png') }}" alt="Campus Parking" class="campus-image">
-          </div>
-        </div>
-      </div>
-    </section>
+    </footer>
   </div>
 
-  <!-- Parking Lot 2 Content -->
-  <div id="parking-lot-2" class="hidden">
-    <section class="hero">
-      <div class="hero-content">
-        <h1>Live Parking Detection Dashboard</h1>
-        <p>AI-powered detection delivering real-time stall availability and map visualization</p>
-
-        <div class="lot-selection">
-          <button class="lot-button" id="lot1-btn-2">Parking Lot 1</button>
-          <button class="lot-button active" id="lot2-btn-2">Parking Lot 2</button>
-        </div>
-
-        <div class="overlay-container">
-          <!-- Raw Live Feed -->
-          <div class="overlay-wrapper">
-            <h2>Live Camera Feed - Lot 2</h2>
-            <img id="live-raw-2" src="/raw-feed-2" alt="Raw Camera Feed" class="overlay-image">
-          </div>
-
-          <!-- AI Overlay View -->
-          <div class="overlay-wrapper">
-            <h2>Camera Detection View - Lot 2</h2>
-            <img id="live-overlay-2" src="/overlay-latest-2" alt="AI Overlay Lot 2" class="overlay-image">
-          </div>
-
-          <!-- Top-Down Map -->
-          <div class="overlay-wrapper">
-            <h2>Top-Down Parking Map (True Lot Layout) - Lot 2</h2>
-            <img id="live-map-2" src="/map-image-2" alt="Top-Down Map" class="overlay-image">
-          </div>
-
-          <!-- Stats -->
-          <div class="overlay-stats">
-            <div class="live-stat">
-              <span class="stat-number" id="hero-available-2">--</span>
-              <span class="stat-label">Available Spots</span>
-            </div>
-            <div class="live-stat">
-              <span class="stat-number" id="hero-total-2">--</span>
-              <span class="stat-label">Total Spots</span>
-            </div>
-            <div class="live-stat">
-              <span class="stat-number" id="hero-occupancy-2">--%</span>
-              <span class="stat-label">Occupancy</span>
-            </div>
-          </div>
-
-          <div class="last-updated-small">
-            Last updated: <span id="hero-update-time-2">--:--:--</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Mission Section -->
-    <section id="mission-2" class="mission">
-      <div class="container">
-        <div class="mission-content">
-          <h2>Our Parking Mission</h2>
-          <p>Our goal is to make parking more convenient and easier for students.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Technology Section -->
-    <section id="about-2" class="about">
-      <div class="container">
-        <div class="about-content">
-          <div class="about-text">
-            <h2>How It Works</h2>
-            <p>Using advanced computer vision and real-time data analytics, Spotection Project identifies available parking spaces and guides drivers directly to them.</p>
-          </div>
-          <div class="about-image">
-            <img src="D:/Random/Capstone Stuff/Spotection/Images/cars-in-parking-lot.jpg" alt="Campus Parking" class="campus-image">
-          </div>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="footer-content">
-      <div class="footer-info">
-        <p>Spotection Project — Making Parking Easier</p>
-      </div>
-    </div>
-  </footer>
-
-  <!-- Script -->
   <script>
-    console.log("Spotection dashboard running...");
-
+    // Parking Lot Management System
     document.addEventListener('DOMContentLoaded', function() {
-      const lot1Page = document.getElementById('parking-lot-1');
-      const lot2Page = document.getElementById('parking-lot-2');
-      const lot1Link = document.getElementById('lot1-link');
-      const lot2Link = document.getElementById('lot2-link');
-      const lot1Btn = document.getElementById('lot1-btn');
-      const lot2Btn = document.getElementById('lot2-btn');
-      const lot1Btn2 = document.getElementById('lot1-btn-2');
-      const lot2Btn2 = document.getElementById('lot2-btn-2');
+      // DOM Elements
+      const loginOverlay = document.getElementById('loginOverlay');
+      const mainContent = document.getElementById('mainContent');
+      const loginForm = document.getElementById('loginForm');
+      const loginError = document.getElementById('loginError');
+      const guestButton = document.getElementById('guestButton');
+      const logoutButton = document.getElementById('logoutButton');
+      const guestLogoutButton = document.getElementById('guestLogoutButton');
+      const adminControls = document.getElementById('adminControls');
+      const guestControls = document.getElementById('guestControls');
+      const addLotButton = document.getElementById('addLotButton');
+      const deleteLotButton = document.getElementById('deleteLotButton');
+      const parkingLotDropdown = document.getElementById('parkingLotDropdown');
+      const parkingLotContent = document.getElementById('parkingLotContent');
+      const deleteModal = document.getElementById('deleteModal');
+      const addLotModal = document.getElementById('addLotModal');
+      const addLotForm = document.getElementById('addLotForm');
+      const cancelAdd = document.getElementById('cancelAdd');
+      const cancelDelete = document.getElementById('cancelDelete');
+      const confirmDelete = document.getElementById('confirmDelete');
+      const deleteLotName = document.getElementById('deleteLotName');
 
-      function showLot1() {
-        lot1Page.classList.remove('hidden');
-        lot2Page.classList.add('hidden');
+      // Demo credentials
+      const validCredentials = {
+        username: 'admin',
+        password: 'spotection123'
+      };
 
-        lot1Btn.classList.add('active');
-        lot2Btn.classList.remove('active');
-        lot1Btn2.classList.add('active');
-        lot2Btn2.classList.remove('active');
+      // Parking lots data structure
+      let parkingLots = JSON.parse(localStorage.getItem('parkingLots')) || [
+        {
+          id: 1,
+          name: 'West Campus Lot',
+          totalSpots: 45,
+          availableSpots: 15,
+          rawFeed: '/raw-feed',
+          overlayFeed: '/overlay-latest',
+          mapImage: '/map-image',
+          apiEndpoint: '/api/parking-data'
+        },
+        {
+          id: 2,
+          name: 'East Campus Garage',
+          totalSpots: 60,
+          availableSpots: 22,
+          rawFeed: '/raw-feed-2',
+          overlayFeed: '/overlay-latest-2',
+          mapImage: '/map-image-2',
+          apiEndpoint: '/api/parking-data-2'
+        }
+      ];
 
-        updateParkingData(1);
+      let currentLotId = 1;
+      let lotToDelete = null;
+      let isGuestMode = false;
+
+      // Check if user is already logged in
+      if (localStorage.getItem('isLoggedIn') === 'true') {
+        showMainContent(false);
+      } else if (localStorage.getItem('isGuestMode') === 'true') {
+        showMainContent(true);
       }
 
-      function showLot2() {
-        lot1Page.classList.add('hidden');
-        lot2Page.classList.remove('hidden');
+      // Login form submission
+      loginForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
 
-        lot1Btn.classList.remove('active');
-        lot2Btn.classList.add('active');
-        lot1Btn2.classList.remove('active');
-        lot2Btn2.classList.add('active');
+        if (username === validCredentials.username && password === validCredentials.password) {
+          localStorage.setItem('isLoggedIn', 'true');
+          localStorage.removeItem('isGuestMode');
+          showMainContent(false);
+        } else {
+          loginError.style.display = 'block';
+          setTimeout(() => {
+            loginError.style.display = 'none';
+          }, 3000);
+        }
+      });
 
-        updateParkingData(2);
-      }
+      // Guest button functionality
+      guestButton.addEventListener('click', function() {
+        localStorage.setItem('isGuestMode', 'true');
+        localStorage.removeItem('isLoggedIn');
+        showMainContent(true);
+      });
 
-      lot1Link.addEventListener('click', function(e) { e.preventDefault(); showLot1(); });
-      lot2Link.addEventListener('click', function(e) { e.preventDefault(); showLot2(); });
-      lot1Btn.addEventListener('click', showLot1);
-      lot2Btn.addEventListener('click', showLot2);
-      lot1Btn2.addEventListener('click', showLot1);
-      lot2Btn2.addEventListener('click', showLot2);
+      // Admin logout functionality
+      logoutButton.addEventListener('click', function() {
+        localStorage.removeItem('isLoggedIn');
+        showLogin();
+      });
 
-      showLot1();
-    });
+      // Guest logout functionality (switch to admin)
+      guestLogoutButton.addEventListener('click', function() {
+        localStorage.removeItem('isGuestMode');
+        showLogin();
+      });
 
-    function updateParkingData(lotNumber = 1) {
-      const endpoint = lotNumber === 1 ? '/api/parking-data' : '/api/parking-data-2';
+      // Add parking lot
+      addLotButton.addEventListener('click', function() {
+        addLotModal.classList.remove('hidden');
+      });
 
-      fetch(endpoint)
-        .then(response => response.json())
-        .then(data => {
-          console.log("Data received for lot " + lotNumber + ":", data);
+      // Cancel add parking lot
+      cancelAdd.addEventListener('click', function() {
+        addLotModal.classList.add('hidden');
+        addLotForm.reset();
+      });
 
-          const availableId = lotNumber === 1 ? 'hero-available' : 'hero-available-2';
-          const totalId = lotNumber === 1 ? 'hero-total' : 'hero-total-2';
-          const occupancyId = lotNumber === 1 ? 'hero-occupancy' : 'hero-occupancy-2';
-          const updateTimeId = lotNumber === 1 ? 'hero-update-time' : 'hero-update-time-2';
-          const mapId = lotNumber === 1 ? 'live-map' : 'live-map-2';
+      // Submit add parking lot form
+      addLotForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const lotName = document.getElementById('lotName').value;
+        const totalSpots = parseInt(document.getElementById('totalSpots').value);
+        const cameraUrl = document.getElementById('cameraUrl').value;
 
-          document.getElementById(availableId).textContent = data.available;
-          document.getElementById(totalId).textContent = data.total;
-          document.getElementById(occupancyId).textContent =
-            Math.round(100 - data.percentage) + '%';
-          document.getElementById(updateTimeId).textContent = data.last_updated;
+        const newLot = {
+          id: Date.now(), // Simple ID generation
+          name: lotName,
+          totalSpots: totalSpots,
+          availableSpots: Math.floor(totalSpots * 0.3), // Start with 30% available
+          rawFeed: cameraUrl || '/raw-feed',
+          overlayFeed: '/overlay-latest',
+          mapImage: '/map-image',
+          apiEndpoint: '/api/parking-data'
+        };
 
-          const availableElement = document.getElementById(availableId);
-          if (data.percentage > 80) {
-            availableElement.style.color = '#e74c3c';
-          } else if (data.percentage > 50) {
-            availableElement.style.color = '#f39c12';
-          } else {
-            availableElement.style.color = '#27ae60';
+        parkingLots.push(newLot);
+        saveParkingLots();
+        renderParkingLots();
+        switchToLot(newLot.id);
+
+        addLotModal.classList.add('hidden');
+        addLotForm.reset();
+      });
+
+      // Delete parking lot
+      deleteLotButton.addEventListener('click', function() {
+        if (parkingLots.length <= 1) {
+          alert('You must have at least one parking lot.');
+          return;
+        }
+
+        const currentLot = parkingLots.find(lot => lot.id === currentLotId);
+        lotToDelete = currentLot.id;
+        deleteLotName.textContent = currentLot.name;
+        deleteModal.classList.remove('hidden');
+      });
+
+      // Confirm delete
+      confirmDelete.addEventListener('click', function() {
+        if (lotToDelete) {
+          parkingLots = parkingLots.filter(lot => lot.id !== lotToDelete);
+          saveParkingLots();
+          renderParkingLots();
+          
+          // Switch to first available lot
+          if (parkingLots.length > 0) {
+            switchToLot(parkingLots[0].id);
           }
+        }
+        deleteModal.classList.add('hidden');
+        lotToDelete = null;
+      });
 
-          const now = new Date().getTime();
-          document.getElementById(mapId).src =
-            (lotNumber === 1 ? '/map-image?t=' : '/map-image-2?t=') + now;
-        })
-        .catch(error => console.log('Error:', error));
-    }
+      // Cancel delete
+      cancelDelete.addEventListener('click', function() {
+        deleteModal.classList.add('hidden');
+        lotToDelete = null;
+      });
 
-    function refreshOverlay() {
-      const img1 = document.getElementById("live-overlay");
-      if (img1) img1.src = "/overlay-latest?t=" + new Date().getTime();
+      function showMainContent(guestMode) {
+        isGuestMode = guestMode;
+        loginOverlay.classList.add('hidden');
+        mainContent.classList.remove('hidden');
+        
+        if (guestMode) {
+          adminControls.classList.add('hidden');
+          guestControls.classList.remove('hidden');
+        } else {
+          adminControls.classList.remove('hidden');
+          guestControls.classList.add('hidden');
+        }
+        
+        renderParkingLots();
+        initializeDashboard();
+      }
 
-      const img2 = document.getElementById("live-overlay-2");
-      if (img2) img2.src = "/overlay-latest-2?t=" + new Date().getTime();
-    }
+      function showLogin() {
+        loginOverlay.classList.remove('hidden');
+        mainContent.classList.add('hidden');
+        adminControls.classList.add('hidden');
+        guestControls.classList.add('hidden');
+        loginForm.reset();
+      }
 
-    // Refresh overlays and stats every 4 seconds
-    setInterval(function() {
-      const lot1Page = document.getElementById('parking-lot-1');
-      const currentLot = lot1Page.classList.contains('hidden') ? 2 : 1;
-      updateParkingData(currentLot);
-      refreshOverlay();
-    }, 4000);
+      function saveParkingLots() {
+        localStorage.setItem('parkingLots', JSON.stringify(parkingLots));
+      }
+
+      function renderParkingLots() {
+        // Render navigation dropdown
+        parkingLotDropdown.innerHTML = '';
+        
+        if (parkingLots.length > 0) {
+          const dropdown = document.createElement('div');
+          dropdown.className = 'dropdown';
+          
+          const currentLot = parkingLots.find(lot => lot.id === currentLotId);
+          const dropdownToggle = document.createElement('button');
+          dropdownToggle.className = 'dropdown-toggle';
+          dropdownToggle.innerHTML = `${currentLot ? currentLot.name : 'Select Lot'} <span>▼</span>`;
+          
+          const dropdownMenu = document.createElement('div');
+          dropdownMenu.className = 'dropdown-menu';
+          
+          parkingLots.forEach(lot => {
+            const dropdownItem = document.createElement('div');
+            dropdownItem.className = `dropdown-item ${lot.id === currentLotId ? 'active' : ''}`;
+            dropdownItem.textContent = lot.name;
+            dropdownItem.dataset.lotId = lot.id;
+            dropdownItem.addEventListener('click', () => {
+              switchToLot(lot.id);
+              dropdownToggle.textContent = lot.name + ' ▼';
+              dropdownMenu.classList.remove('show');
+              dropdownToggle.classList.remove('open');
+            });
+            dropdownMenu.appendChild(dropdownItem);
+          });
+          
+          dropdownToggle.addEventListener('click', () => {
+            dropdownMenu.classList.toggle('show');
+            dropdownToggle.classList.toggle('open');
+          });
+          
+          // Close dropdown when clicking outside
+          document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+              dropdownMenu.classList.remove('show');
+              dropdownToggle.classList.remove('open');
+            }
+          });
+          
+          dropdown.appendChild(dropdownToggle);
+          dropdown.appendChild(dropdownMenu);
+          parkingLotDropdown.appendChild(dropdown);
+        }
+
+        // Render parking lot content (REMOVED the dropdown from hero section)
+        parkingLotContent.innerHTML = '';
+        parkingLots.forEach(lot => {
+          const lotDiv = document.createElement('div');
+          lotDiv.id = `parking-lot-${lot.id}`;
+          lotDiv.className = 'hidden parking-lot';
+          
+          lotDiv.innerHTML = `
+            <section class="hero">
+              <div class="hero-content">
+                <h1>Live Parking Detection Dashboard</h1>
+                <p>AI-powered detection delivering real-time stall availability and map visualization</p>
+
+                <!-- REMOVED the dropdown from hero section -->
+
+                <div class="overlay-container">
+                  <!-- Raw Live Feed -->
+                  <div class="overlay-wrapper">
+                    <h2>Live Camera Feed - ${lot.name}</h2>
+                    <img id="live-raw-${lot.id}" src="${lot.rawFeed}" alt="Raw Camera Feed" class="overlay-image">
+                  </div>
+
+                  <!-- AI Overlay View -->
+                  <div class="overlay-wrapper">
+                    <h2>Camera Detection View - ${lot.name}</h2>
+                    <img id="live-overlay-${lot.id}" src="${lot.overlayFeed}" alt="AI Overlay" class="overlay-image">
+                  </div>
+
+                  <!-- Top-Down Map -->
+                  <div class="overlay-wrapper">
+                    <h2>Top-Down Parking Map - ${lot.name}</h2>
+                    <img id="live-map-${lot.id}" src="${lot.mapImage}" alt="Top-Down Map" class="overlay-image">
+                  </div>
+
+                  <!-- Stats -->
+                  <div class="overlay-stats">
+                    <div class="live-stat">
+                      <span class="stat-number" id="hero-available-${lot.id}">${lot.availableSpots}</span>
+                      <span class="stat-label">Available Spots</span>
+                    </div>
+                    <div class="live-stat">
+                      <span class="stat-number" id="hero-total-${lot.id}">${lot.totalSpots}</span>
+                      <span class="stat-label">Total Spots</span>
+                    </div>
+                    <div class="live-stat">
+                      <span class="stat-number" id="hero-occupancy-${lot.id}">${Math.round(100 - (lot.availableSpots / lot.totalSpots * 100))}%</span>
+                      <span class="stat-label">Occupancy</span>
+                    </div>
+                  </div>
+
+                  <div class="last-updated-small">
+                    Last updated: <span id="hero-update-time-${lot.id}">${new Date().toLocaleTimeString()}</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Mission Section -->
+            <section class="mission">
+              <div class="container">
+                <div class="mission-content">
+                  <h2>Our Parking Mission</h2>
+                  <p>Our goal is to make parking more convenient and easier for students.</p>
+                </div>
+              </div>
+            </section>
+
+            <!-- Technology Section -->
+            <section class="about">
+              <div class="container">
+                <div class="about-content">
+                  <div class="about-text">
+                    <h2>How It Works</h2>
+                    <p>Using advanced computer vision and real-time data analytics, Spotection Project identifies available parking spaces and guides drivers directly to them.</p>
+                  </div>
+                  <div class="about-image">
+                    <img src="{{ url_for('static', filename='images/image.png') }}" alt="Campus Parking" class="campus-image">
+                  </div>
+                </div>
+              </div>
+            </section>
+          `;
+          
+          parkingLotContent.appendChild(lotDiv);
+        });
+
+        switchToLot(currentLotId);
+      }
+
+      function switchToLot(lotId) {
+        currentLotId = lotId;
+        
+        // Hide all parking lots
+        document.querySelectorAll('.parking-lot').forEach(lot => {
+          lot.classList.add('hidden');
+        });
+        
+        // Show selected parking lot
+        const selectedLot = document.getElementById(`parking-lot-${lotId}`);
+        if (selectedLot) {
+          selectedLot.classList.remove('hidden');
+        }
+        
+        // Update navigation dropdown
+        const currentLot = parkingLots.find(lot => lot.id === currentLotId);
+        const dropdownToggle = document.querySelector('#parkingLotDropdown .dropdown-toggle');
+        if (dropdownToggle && currentLot) {
+          dropdownToggle.innerHTML = `${currentLot.name} <span>▼</span>`;
+        }
+        
+        // Update active states in dropdown menu
+        document.querySelectorAll('#parkingLotDropdown .dropdown-item').forEach(item => {
+          item.classList.toggle('active', parseInt(item.dataset.lotId) === lotId);
+        });
+      }
+
+      function initializeDashboard() {
+        console.log("Spotection dashboard running...");
+        
+        // Start updating parking data
+        setInterval(updateParkingData, 4000);
+        
+        // Start refreshing overlays
+        setInterval(refreshOverlays, 4000);
+      }
+
+      function updateParkingData() {
+        parkingLots.forEach(lot => {
+          const endpoint = lot.apiEndpoint;
+          
+          // Simulate API call - in real implementation, this would be fetch()
+          setTimeout(() => {
+            // Simulate data changes
+            const change = Math.random() > 0.7 ? (Math.random() > 0.5 ? 1 : -1) : 0;
+            let newAvailable = Math.max(0, Math.min(lot.availableSpots + change, lot.totalSpots));
+            
+            // Update display
+            const availableElement = document.getElementById(`hero-available-${lot.id}`);
+            const totalElement = document.getElementById(`hero-total-${lot.id}`);
+            const occupancyElement = document.getElementById(`hero-occupancy-${lot.id}`);
+            const updateTimeElement = document.getElementById(`hero-update-time-${lot.id}`);
+            
+            if (availableElement) {
+              availableElement.textContent = newAvailable;
+              // Color coding
+              const occupancy = (lot.totalSpots - newAvailable) / lot.totalSpots * 100;
+              if (occupancy > 80) {
+                availableElement.style.color = '#e74c3c';
+              } else if (occupancy > 50) {
+                availableElement.style.color = '#f39c12';
+              } else {
+                availableElement.style.color = '#27ae60';
+              }
+            }
+            if (occupancyElement) {
+              occupancyElement.textContent = `${Math.round(100 - (newAvailable / lot.totalSpots * 100))}%`;
+            }
+            if (updateTimeElement) {
+              updateTimeElement.textContent = new Date().toLocaleTimeString();
+            }
+          }, Math.random() * 1000);
+        });
+      }
+
+      function refreshOverlays() {
+        parkingLots.forEach(lot => {
+          const overlayImg = document.getElementById(`live-overlay-${lot.id}`);
+          const mapImg = document.getElementById(`live-map-${lot.id}`);
+          const rawImg = document.getElementById(`live-raw-${lot.id}`);
+          
+          if (overlayImg) {
+            overlayImg.src = `${lot.overlayFeed}?t=${new Date().getTime()}`;
+          }
+          if (mapImg) {
+            mapImg.src = `${lot.mapImage}?t=${new Date().getTime()}`;
+          }
+          if (rawImg && lot.rawFeed.startsWith('http')) {
+            rawImg.src = `${lot.rawFeed}?t=${new Date().getTime()}`;
+          }
+        });
+      }
+
+      // Initialize the app
+      if (localStorage.getItem('isLoggedIn') === 'true') {
+        showMainContent(false);
+      } else if (localStorage.getItem('isGuestMode') === 'true') {
+        showMainContent(true);
+      }
+    });
   </script>
 </body>
 </html>
