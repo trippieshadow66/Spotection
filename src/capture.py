@@ -2,13 +2,9 @@ import cv2, os, time, argparse
 import urllib.request
 import numpy as np
 
-# Lot stream URLs
-LOT_STREAMS = {
-    1: "https://taco-about-python.com/video_feed",  # MJPEG stream
-    2: "http://170.249.152.2:8080/cgi-bin/viewer/video.jpg",  # JPEG snapshot
-}
+from src.db import get_lot_by_id
 
-# Per-lot flip rules
+# Per-lot flip rules (keep as-is for now)
 NEEDS_FLIP = {
     1: True,   # Lot 1 camera upside-down
     2: False,  # Lot 2 is upright
@@ -17,15 +13,16 @@ NEEDS_FLIP = {
 INTERVAL = 2.0  # seconds between images
 
 
-# JPEG snapshot grab (for lot 2)
 def fetch_jpeg(url):
+    """JPEG snapshot grab (for cameras like lot 2)."""
     try:
         with urllib.request.urlopen(url, timeout=5) as resp:
             data = resp.read()
         img_array = np.asarray(bytearray(data), dtype=np.uint8)
         frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
         return frame
-    except:
+    except Exception as e:
+        print("Snapshot fetch error:", e)
         return None
 
 
@@ -35,10 +32,19 @@ def main():
     args = parser.parse_args()
 
     lot_id = args.lot
-    url = LOT_STREAMS.get(lot_id)
-    is_jpeg_camera = url.endswith(".jpg") or "cgi-bin" in url.lower()
+    lot_info = get_lot_by_id(lot_id)
 
-    output_dir = os.path.join("data", f"lot{lot_id}", "frames")
+    if not lot_info:
+        raise RuntimeError(f"No lot with id={lot_id} found in database. Did you create it via the admin site?")
+
+    url = lot_info["stream_url"]
+    if not url:
+        raise RuntimeError(f"Lot {lot_id} has no stream_url set.")
+
+    is_jpeg_camera = url.lower().endswith(".jpg") or "cgi-bin" in url.lower()
+
+    base_dir = os.path.join("data", f"lot{lot_id}")
+    output_dir = os.path.join(base_dir, "frames")
     os.makedirs(output_dir, exist_ok=True)
 
     print(f"Connecting to live stream for lot {lot_id}: {url}")

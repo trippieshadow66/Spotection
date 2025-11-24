@@ -1,13 +1,20 @@
 import subprocess, time, sys
-
-LOTS = [1, 2]
+from src.db import init_db, get_all_lots
 
 
 def main():
     print("🚀 Starting Spotection Multi-Lot System\n")
 
     print("📊 Initializing DB…")
-    subprocess.run([sys.executable, "-m", "src.db"])
+    init_db()
+
+    lot_rows = get_all_lots()
+    LOTS = [row["id"] for row in lot_rows]
+    if not LOTS:
+        print("⚠️ No lots defined in DB. Create one via the admin UI first.")
+        return
+
+    print(f"📋 Lots to start: {LOTS}")
 
     cap_processes = []
     detect_processes = []
@@ -33,7 +40,7 @@ def main():
     for p in cap_processes + detect_processes:
         try:
             p.terminate()
-        except:
+        except Exception:
             pass
 
 

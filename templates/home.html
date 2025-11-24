@@ -1,3 +1,4 @@
+<!-- templates/home.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -204,6 +205,7 @@
       cursor: pointer;
       transition: all 0.3s ease;
       margin-top: 1rem;
+      width: 100%;
     }
 
     .login-button:hover {
@@ -745,6 +747,7 @@
         <div id="parkingLotDropdown"></div>
         <div class="admin-controls hidden" id="adminControls">
           <button class="admin-button" id="addLotButton">Add Parking Lot</button>
+          <button class="admin-button" id="editConfigButton">Edit Current Lot Config</button>
           <button class="admin-button delete-button" id="deleteLotButton">Delete Current Lot</button>
           <button class="logout-button" id="logoutButton">Logout</button>
         </div>
@@ -771,7 +774,7 @@
   </div>
 
   <script>
-    // Parking Lot Management System
+    // Parking Lot Management System (API-driven)
     document.addEventListener('DOMContentLoaded', function() {
       // DOM Elements
       const loginOverlay = document.getElementById('loginOverlay');
@@ -785,6 +788,7 @@
       const guestControls = document.getElementById('guestControls');
       const addLotButton = document.getElementById('addLotButton');
       const deleteLotButton = document.getElementById('deleteLotButton');
+      const editConfigButton = document.getElementById('editConfigButton');
       const parkingLotDropdown = document.getElementById('parkingLotDropdown');
       const parkingLotContent = document.getElementById('parkingLotContent');
       const deleteModal = document.getElementById('deleteModal');
@@ -801,33 +805,43 @@
         password: 'spotection123'
       };
 
-      // Parking lots data structure
-      let parkingLots = JSON.parse(localStorage.getItem('parkingLots')) || [
-        {
-          id: 1,
-          name: 'West Campus Lot',
-          totalSpots: 45,
-          availableSpots: 15,
-          rawFeed: '/raw-feed',
-          overlayFeed: '/overlay-latest',
-          mapImage: '/map-image',
-          apiEndpoint: '/api/parking-data'
-        },
-        {
-          id: 2,
-          name: 'East Campus Garage',
-          totalSpots: 60,
-          availableSpots: 22,
-          rawFeed: '/raw-feed-2',
-          overlayFeed: '/overlay-latest-2',
-          mapImage: '/map-image-2',
-          apiEndpoint: '/api/parking-data-2'
-        }
-      ];
-
-      let currentLotId = 1;
+      // Parking lots state (loaded from backend, NOT localStorage)
+      let parkingLots = [];
+      let currentLotId = null;
       let lotToDelete = null;
       let isGuestMode = false;
+
+      // API helpers
+      async function apiGetLots() {
+        const res = await fetch('/api/lots');
+        if (!res.ok) throw new Error('Failed to load lots');
+        return res.json();
+      }
+
+      async function apiCreateLot(payload) {
+        const res = await fetch('/api/lots', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Failed to create lot');
+        return res.json();
+      }
+
+      async function apiDeleteLot(lotId) {
+        const res = await fetch(`/api/lots/${lotId}`, {
+          method: 'DELETE'
+        });
+        if (!res.ok) throw new Error('Failed to delete lot');
+        return res.json().catch(() => ({}));
+      }
+
+      async function apiGetStats(lot) {
+        if (!lot.statsUrl) return null;
+        const res = await fetch(lot.statsUrl);
+        if (!res.ok) return null;
+        return res.json();
+      }
 
       // Check if user is already logged in
       if (localStorage.getItem('isLoggedIn') === 'true') {
@@ -839,9 +853,9 @@
       // Login form submission
       loginForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
 
         if (username === validCredentials.username && password === validCredentials.password) {
           localStorage.setItem('isLoggedIn', 'true');
@@ -886,31 +900,31 @@
       });
 
       // Submit add parking lot form
-      addLotForm.addEventListener('submit', function(e) {
+      addLotForm.addEventListener('submit', async function(e) {
         e.preventDefault();
-        
-        const lotName = document.getElementById('lotName').value;
-        const totalSpots = parseInt(document.getElementById('totalSpots').value);
-        const cameraUrl = document.getElementById('cameraUrl').value;
 
-        const newLot = {
-          id: Date.now(), // Simple ID generation
-          name: lotName,
-          totalSpots: totalSpots,
-          availableSpots: Math.floor(totalSpots * 0.3), // Start with 30% available
-          rawFeed: cameraUrl || '/raw-feed',
-          overlayFeed: '/overlay-latest',
-          mapImage: '/map-image',
-          apiEndpoint: '/api/parking-data'
-        };
+        const lotName = document.getElementById('lotName').value.trim();
+        const totalSpots = parseInt(document.getElementById('totalSpots').value, 10);
+        const cameraUrl = document.getElementById('cameraUrl').value.trim() || null;
 
-        parkingLots.push(newLot);
-        saveParkingLots();
-        renderParkingLots();
-        switchToLot(newLot.id);
+        try {
+          const newLot = await apiCreateLot({
+            name: lotName,
+            totalSpots: totalSpots,
+            cameraUrl: cameraUrl
+          });
 
-        addLotModal.classList.add('hidden');
-        addLotForm.reset();
+          const normalized = normalizeLot(newLot);
+          parkingLots.push(normalized);
+          currentLotId = normalized.id;
+          renderParkingLots();
+          switchToLot(normalized.id);
+
+          addLotModal.classList.add('hidden');
+          addLotForm.reset();
+        } catch (err) {
+          alert('Error creating lot: ' + err.message);
+        }
       });
 
       // Delete parking lot
@@ -921,23 +935,38 @@
         }
 
         const currentLot = parkingLots.find(lot => lot.id === currentLotId);
+        if (!currentLot) return;
+
         lotToDelete = currentLot.id;
         deleteLotName.textContent = currentLot.name;
         deleteModal.classList.remove('hidden');
       });
 
       // Confirm delete
-      confirmDelete.addEventListener('click', function() {
-        if (lotToDelete) {
-          parkingLots = parkingLots.filter(lot => lot.id !== lotToDelete);
-          saveParkingLots();
+      confirmDelete.addEventListener('click', async function() {
+        if (!lotToDelete) return;
+
+        try {
+          await apiDeleteLot(lotToDelete);
+          await loadLotsFromServer();     // << reload REAL list from backend
           renderParkingLots();
-          
-          // Switch to first available lot
+          if (currentLotId) switchToLot(currentLotId);
+
           if (parkingLots.length > 0) {
-            switchToLot(parkingLots[0].id);
+            currentLotId = parkingLots[0].id;
+          } else {
+            currentLotId = null;
           }
+
+          renderParkingLots();
+          if (currentLotId) {
+            switchToLot(currentLotId);
+          }
+
+        } catch (err) {
+          alert('Error deleting lot: ' + err.message);
         }
+
         deleteModal.classList.add('hidden');
         lotToDelete = null;
       });
@@ -948,11 +977,20 @@
         lotToDelete = null;
       });
 
+      // Edit current lot config
+      editConfigButton.addEventListener('click', function() {
+        if (!currentLotId) {
+          alert('No lot selected.');
+          return;
+        }
+        window.location.href = `/admin/lot-config/${currentLotId}`;
+      });
+
       function showMainContent(guestMode) {
         isGuestMode = guestMode;
         loginOverlay.classList.add('hidden');
         mainContent.classList.remove('hidden');
-        
+
         if (guestMode) {
           adminControls.classList.add('hidden');
           guestControls.classList.remove('hidden');
@@ -960,9 +998,14 @@
           adminControls.classList.remove('hidden');
           guestControls.classList.add('hidden');
         }
-        
-        renderParkingLots();
-        initializeDashboard();
+
+        // Load lots from backend then init dashboard
+        loadLotsFromServer().then(() => {
+          initializeDashboard();
+        }).catch(err => {
+          console.error(err);
+          alert('Failed to load parking lots from server.');
+        });
       }
 
       function showLogin() {
@@ -973,45 +1016,75 @@
         loginForm.reset();
       }
 
-      function saveParkingLots() {
-        localStorage.setItem('parkingLots', JSON.stringify(parkingLots));
+      async function loadLotsFromServer() {
+        const data = await apiGetLots();
+        const lots = (data && data.lots) ? data.lots : [];
+
+        parkingLots = lots.map(normalizeLot);
+
+        if (parkingLots.length > 0) {
+          if (!currentLotId || !parkingLots.some(l => l.id === currentLotId)) {
+            currentLotId = parkingLots[0].id;
+          }
+        } else {
+          currentLotId = null;
+        }
+
+        renderParkingLots();
+        if (currentLotId) {
+          switchToLot(currentLotId);
+        }
+      }
+
+      // Normalize lot object keys to a consistent shape for the frontend
+      function normalizeLot(raw) {
+        return {
+          id: raw.id,
+          name: raw.name,
+          totalSpots: raw.total_spots ?? raw.totalSpots ?? 0,
+          availableSpots: raw.available_spots ?? raw.availableSpots ?? 0,
+          rawFeed: raw.raw_feed_url ?? raw.rawFeed ?? '/raw-feed',
+          overlayFeed: raw.overlay_url ?? raw.overlayFeed ?? '/overlay-latest',
+          mapImage: raw.map_url ?? raw.mapImage ?? '/map-image',
+          statsUrl: raw.stats_url ?? raw.apiEndpoint ?? null
+        };
       }
 
       function renderParkingLots() {
         // Render navigation dropdown
         parkingLotDropdown.innerHTML = '';
-        
+
         if (parkingLots.length > 0) {
           const dropdown = document.createElement('div');
           dropdown.className = 'dropdown';
-          
+
           const currentLot = parkingLots.find(lot => lot.id === currentLotId);
           const dropdownToggle = document.createElement('button');
           dropdownToggle.className = 'dropdown-toggle';
-          dropdownToggle.innerHTML = `${currentLot ? currentLot.name : 'Select Lot'} <span>▼</span>`;
-          
+          dropdownToggle.innerHTML = `${currentLot ? currentLot.name : 'Select Lot'}`;
+
           const dropdownMenu = document.createElement('div');
           dropdownMenu.className = 'dropdown-menu';
-          
+
           parkingLots.forEach(lot => {
             const dropdownItem = document.createElement('div');
-            dropdownItem.className = `dropdown-item ${lot.id === currentLotId ? 'active' : ''}`;
+            dropdownItem.className = 'dropdown-item' + (lot.id === currentLotId ? ' active' : '');
             dropdownItem.textContent = lot.name;
             dropdownItem.dataset.lotId = lot.id;
             dropdownItem.addEventListener('click', () => {
               switchToLot(lot.id);
-              dropdownToggle.textContent = lot.name + ' ▼';
+              dropdownToggle.textContent = lot.name;
               dropdownMenu.classList.remove('show');
               dropdownToggle.classList.remove('open');
             });
             dropdownMenu.appendChild(dropdownItem);
           });
-          
+
           dropdownToggle.addEventListener('click', () => {
             dropdownMenu.classList.toggle('show');
             dropdownToggle.classList.toggle('open');
           });
-          
+
           // Close dropdown when clicking outside
           document.addEventListener('click', (e) => {
             if (!dropdown.contains(e.target)) {
@@ -1019,26 +1092,28 @@
               dropdownToggle.classList.remove('open');
             }
           });
-          
+
           dropdown.appendChild(dropdownToggle);
           dropdown.appendChild(dropdownMenu);
           parkingLotDropdown.appendChild(dropdown);
         }
 
-        // Render parking lot content (REMOVED the dropdown from hero section)
+        // Render parking lot content
         parkingLotContent.innerHTML = '';
         parkingLots.forEach(lot => {
           const lotDiv = document.createElement('div');
           lotDiv.id = `parking-lot-${lot.id}`;
           lotDiv.className = 'hidden parking-lot';
-          
+
+          const occupancyPercent = lot.totalSpots
+            ? Math.round(100 - (lot.availableSpots / lot.totalSpots * 100))
+            : 0;
+
           lotDiv.innerHTML = `
             <section class="hero">
               <div class="hero-content">
                 <h1>Live Parking Detection Dashboard</h1>
                 <p>AI-powered detection delivering real-time stall availability and map visualization</p>
-
-                <!-- REMOVED the dropdown from hero section -->
 
                 <div class="overlay-container">
                   <!-- Raw Live Feed -->
@@ -1070,7 +1145,7 @@
                       <span class="stat-label">Total Spots</span>
                     </div>
                     <div class="live-stat">
-                      <span class="stat-number" id="hero-occupancy-${lot.id}">${Math.round(100 - (lot.availableSpots / lot.totalSpots * 100))}%</span>
+                      <span class="stat-number" id="hero-occupancy-${lot.id}">${occupancyPercent}%</span>
                       <span class="stat-label">Occupancy</span>
                     </div>
                   </div>
@@ -1083,22 +1158,23 @@
             </section>
 
             <!-- Mission Section -->
-            <section class="mission">
+            <section id="mission" class="mission">
               <div class="container">
                 <div class="mission-content">
                   <h2>Our Parking Mission</h2>
-                  <p>Our goal is to make parking more convenient and easier for students.</p>
+                  <p>Our goal is to make parking more convenient and easier for students, faculty, staff, and visitors by providing live, AI-powered stall availability.</p>
                 </div>
               </div>
             </section>
 
             <!-- Technology Section -->
-            <section class="about">
+            <section id="about" class="about">
               <div class="container">
                 <div class="about-content">
                   <div class="about-text">
                     <h2>How It Works</h2>
-                    <p>Using advanced computer vision and real-time data analytics, Spotection Project identifies available parking spaces and guides drivers directly to them.</p>
+                    <p>Using advanced computer vision and real-time data analytics, the Spotection system identifies which parking stalls are occupied and which are free. It continuously processes camera frames, generates an overlay, and updates a simplified top-down map.</p>
+                    <p>Each lot can be configured entirely from this web interface — including stall boundaries, camera configuration, and live occupancy visualization — without touching any backend code directly.</p>
                   </div>
                   <div class="about-image">
                     <img src="{{ url_for('static', filename='images/image.png') }}" alt="Campus Parking" class="campus-image">
@@ -1107,107 +1183,119 @@
               </div>
             </section>
           `;
-          
+
           parkingLotContent.appendChild(lotDiv);
         });
 
-        switchToLot(currentLotId);
+        if (currentLotId) {
+          switchToLot(currentLotId);
+        }
       }
 
       function switchToLot(lotId) {
         currentLotId = lotId;
-        
+
         // Hide all parking lots
         document.querySelectorAll('.parking-lot').forEach(lot => {
           lot.classList.add('hidden');
         });
-        
+
         // Show selected parking lot
         const selectedLot = document.getElementById(`parking-lot-${lotId}`);
         if (selectedLot) {
           selectedLot.classList.remove('hidden');
         }
-        
+
         // Update navigation dropdown
         const currentLot = parkingLots.find(lot => lot.id === currentLotId);
         const dropdownToggle = document.querySelector('#parkingLotDropdown .dropdown-toggle');
         if (dropdownToggle && currentLot) {
-          dropdownToggle.innerHTML = `${currentLot.name} <span>▼</span>`;
+          dropdownToggle.textContent = currentLot.name;
         }
-        
+
         // Update active states in dropdown menu
         document.querySelectorAll('#parkingLotDropdown .dropdown-item').forEach(item => {
-          item.classList.toggle('active', parseInt(item.dataset.lotId) === lotId);
+          item.classList.toggle('active', parseInt(item.dataset.lotId, 10) === lotId);
         });
       }
 
       function initializeDashboard() {
-        console.log("Spotection dashboard running...");
-        
+        console.log("Spotection dashboard running with backend lots…");
+
         // Start updating parking data
         setInterval(updateParkingData, 4000);
-        
+
         // Start refreshing overlays
         setInterval(refreshOverlays, 4000);
       }
 
-      function updateParkingData() {
-        parkingLots.forEach(lot => {
-          const endpoint = lot.apiEndpoint;
-          
-          // Simulate API call - in real implementation, this would be fetch()
-          setTimeout(() => {
-            // Simulate data changes
-            const change = Math.random() > 0.7 ? (Math.random() > 0.5 ? 1 : -1) : 0;
-            let newAvailable = Math.max(0, Math.min(lot.availableSpots + change, lot.totalSpots));
-            
-            // Update display
+      async function updateParkingData() {
+    for (const lot of parkingLots) {
+        // skip lots that have no stats endpoint
+        if (!lot.statsUrl) continue;
+
+        // skip nonexistent lots (prevents spam)
+        if (!lot || !lot.id) continue;
+        if (!document.getElementById(`parking-lot-${lot.id}`)) continue;
+
+        try {
+            const stats = await apiGetStats(lot);
+            if (!stats) continue;
+
             const availableElement = document.getElementById(`hero-available-${lot.id}`);
             const totalElement = document.getElementById(`hero-total-${lot.id}`);
             const occupancyElement = document.getElementById(`hero-occupancy-${lot.id}`);
             const updateTimeElement = document.getElementById(`hero-update-time-${lot.id}`);
-            
+
+            const newAvailable = stats.available ?? 0;
+            const newTotal = stats.total ?? lot.totalSpots ?? 0;
+            const occupancy = newTotal ? (newTotal - newAvailable) / newTotal * 100 : 0;
+
+            lot.availableSpots = newAvailable;
+            lot.totalSpots = newTotal;
+
             if (availableElement) {
-              availableElement.textContent = newAvailable;
-              // Color coding
-              const occupancy = (lot.totalSpots - newAvailable) / lot.totalSpots * 100;
-              if (occupancy > 80) {
-                availableElement.style.color = '#e74c3c';
-              } else if (occupancy > 50) {
-                availableElement.style.color = '#f39c12';
-              } else {
-                availableElement.style.color = '#27ae60';
-              }
+                availableElement.textContent = newAvailable;
+                if (occupancy > 80) {
+                    availableElement.style.color = '#e74c3c';
+                } else if (occupancy > 50) {
+                    availableElement.style.color = '#f39c12';
+                } else {
+                    availableElement.style.color = '#27ae60';
+                }
             }
-            if (occupancyElement) {
-              occupancyElement.textContent = `${Math.round(100 - (newAvailable / lot.totalSpots * 100))}%`;
-            }
-            if (updateTimeElement) {
-              updateTimeElement.textContent = new Date().toLocaleTimeString();
-            }
-          }, Math.random() * 1000);
-        });
-      }
+
+            if (totalElement) totalElement.textContent = newTotal;
+            if (occupancyElement) occupancyElement.textContent = `${Math.round(occupancy)}%`;
+            if (updateTimeElement) updateTimeElement.textContent = stats.last_updated || new Date().toLocaleTimeString();
+
+        } catch (err) {
+            console.warn('Failed to update stats for lot', lot.id, err);
+        }
+    }
+}
 
       function refreshOverlays() {
+        const ts = new Date().getTime();
         parkingLots.forEach(lot => {
           const overlayImg = document.getElementById(`live-overlay-${lot.id}`);
           const mapImg = document.getElementById(`live-map-${lot.id}`);
           const rawImg = document.getElementById(`live-raw-${lot.id}`);
-          
+          if (!lot || !lot.id) return;
+
           if (overlayImg) {
-            overlayImg.src = `${lot.overlayFeed}?t=${new Date().getTime()}`;
+            overlayImg.src = `${lot.overlayFeed}?t=${ts}`;
           }
           if (mapImg) {
-            mapImg.src = `${lot.mapImage}?t=${new Date().getTime()}`;
+            mapImg.src = `${lot.mapImage}?t=${ts}`;
           }
-          if (rawImg && lot.rawFeed.startsWith('http')) {
-            rawImg.src = `${lot.rawFeed}?t=${new Date().getTime()}`;
+          if (rawImg && lot.rawFeed) {
+            rawImg.src = `${lot.rawFeed}?t=${ts}`;
           }
         });
       }
 
-      // Initialize the app
+      // Initialize the app (if user already logged/guest from previous session)
       if (localStorage.getItem('isLoggedIn') === 'true') {
         showMainContent(false);
       } else if (localStorage.getItem('isGuestMode') === 'true') {
