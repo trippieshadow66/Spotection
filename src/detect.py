@@ -2,19 +2,13 @@ import os, json, time, glob, cv2, numpy as np, argparse
 from ultralytics import YOLO
 from datetime import datetime
 from collections import defaultdict, deque
-from src.db import save_detection_result
+from src.db import save_detection_result, get_lot_by_id
 
 try:
     from shapely.geometry import Polygon, box as shapely_box
     SHAPELY_OK = True
 except:
     SHAPELY_OK = False
-
-# Per-lot camera flip rules
-NEEDS_FLIP = {
-    1: True,
-    2: False,
-}
 
 MODEL_PATH = "yolov8s.pt"
 CONF = 0.25
@@ -27,7 +21,7 @@ stall_history = defaultdict(lambda: deque(maxlen=HISTORY_LEN))
 
 
 def get_paths(lot_id):
-    base = os.path.join("data", f"lot{lot_id}")
+    base = f"data/lot{lot_id}"
     return (
         os.path.join(base, "lot_config.json"),
         os.path.join(base, "frames"),
@@ -38,48 +32,48 @@ def get_paths(lot_id):
 
 def ensure_dirs(lot_id):
     _, frames, overlays, maps = get_paths(lot_id)
-    for d in [frames, overlays, maps]:
+    for d in (frames, overlays, maps):
         os.makedirs(d, exist_ok=True)
 
 
 def load_config(lot_id):
-    config_path, _, _, _ = get_paths(lot_id)
+    config_path, *_ = get_paths(lot_id)
     if not os.path.exists(config_path):
-        raise FileNotFoundError(f"Missing config for lot {lot_id}")
+        raise FileNotFoundError("Missing lot_config.json")
 
     with open(config_path) as f:
         cfg = json.load(f)
 
     stalls = []
     for s in cfg["stalls"]:
-        pts = np.array(s["points"], dtype=np.int32)
-        obj = {"id": str(s["id"]), "pts": pts, "lane": s["lane"]}
+        pts = np.array(s["points"], np.int32)
+        entry = {"id": str(s["id"]), "pts": pts, "lane": s["lane"]}
         if SHAPELY_OK:
-            obj["poly"] = Polygon(pts)
-        stalls.append(obj)
+            entry["poly"] = Polygon(pts)
+        stalls.append(entry)
     return stalls
 
 
 def cleanup(folder):
     files = sorted(glob.glob(os.path.join(folder, "*.jpg")), key=os.path.getmtime)
     for old in files[:-MAX_KEEP]:
-        try: os.remove(old)
-        except: pass
+        try:
+            os.remove(old)
+        except:
+            pass
 
 
 def compute_overlap(stall, box):
-    x1,y1,x2,y2 = box
+    x1, y1, x2, y2 = box
     if SHAPELY_OK:
-        A = stall["poly"]
-        B = shapely_box(x1,y1,x2,y2)
-        inter = A.intersection(B).area
-        return inter / max(A.area, 1)
-    # bounding box fallback
+        inter = stall["poly"].intersection(shapely_box(x1,y1,x2,y2)).area
+        return inter / max(stall["poly"].area, 1)
+    # fallback
     sx, sy, sw, sh = cv2.boundingRect(stall["pts"])
-    ix1, iy1 = max(x1,sx), max(y1,sy)
-    ix2, iy2 = min(x2,sx+sw), min(y2,sy+sh)
-    inter_w, inter_h = max(0,ix2-ix1), max(0,iy2-iy1)
-    return (inter_w*inter_h) / (sw*sh)
+    ix1, iy1 = max(x1, sx), max(y1, sy)
+    ix2, iy2 = min(x2, sx+sw), min(y2, sy+sh)
+    iw, ih = max(0, ix2-ix1), max(0, iy2-iy1)
+    return (iw * ih) / max(sw * sh, 1)
 
 
 def assign_occupancy(stalls, boxes):
@@ -105,13 +99,13 @@ def smooth(occ_raw):
 
 def draw_overlay(img, stalls, occ, boxes):
     out = img.copy()
-    for (x1,y1,x2,y2) in boxes:
-        cv2.rectangle(out, (int(x1),int(y1)), (int(x2),int(y2)), (255,255,0),2)
+    for x1,y1,x2,y2 in boxes:
+        cv2.rectangle(out, (int(x1),int(y1)), (int(x2),int(y2)), (255,255,0), 2)
     for s in stalls:
-        pts = s["pts"]
         color = (0,0,255) if occ[s["id"]] else (0,255,0)
-        cv2.polylines(out, [pts], True, color, 2)
-        cx, cy = int(np.mean(pts[:,0])), int(np.mean(pts[:,1]))
+        cv2.polylines(out, [s["pts"]], True, color, 2)
+        cx = int(np.mean(s["pts"][:,0]))
+        cy = int(np.mean(s["pts"][:,1]))
         cv2.putText(out, s["id"], (cx,cy), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
     return out
 
@@ -128,14 +122,13 @@ def draw_map(stalls, occ, lot_id):
     for s in stalls:
         lanes.setdefault(s["lane"], []).append(s)
     for lane in lanes.values():
-        lane.sort(key=lambda x: np.mean(x["pts"][:,1]))
+        lane.sort(key=lambda st: np.mean(st["pts"][:,1]))
 
-    canvas_h = margin_y*2 + max(len(v) for v in lanes.values()) * (stall_h+pad_y)
-    canvas_w = margin_x*2 + len(lanes) * (stall_w+pad_x)
-    canvas = np.zeros((canvas_h, canvas_w, 3), dtype=np.uint8) + 35
+    h = margin_y*2 + max(len(v) for v in lanes.values())*(stall_h+pad_y)
+    w = margin_x*2 + len(lanes)*(stall_w+pad_x)
+    canvas = np.zeros((h,w,3), np.uint8) + 35
 
-    lane_ids = sorted(lanes.keys())
-    for col,lid in enumerate(lane_ids):
+    for col, lid in enumerate(sorted(lanes)):
         for row, s in enumerate(lanes[lid]):
             x1 = margin_x + col*(stall_w+pad_x)
             y1 = margin_y + row*(stall_h+pad_y)
@@ -145,10 +138,10 @@ def draw_map(stalls, occ, lot_id):
             cv2.rectangle(canvas,(x1,y1),(x2,y2),(255,255,255),2)
 
     ts = int(time.time()*1000)
-    path = os.path.join(maps, f"map_{ts}.jpg")
-    cv2.imwrite(path, canvas)
+    out = os.path.join(maps, f"map_{ts}.jpg")
+    cv2.imwrite(out, canvas)
     cleanup(maps)
-    return path
+    return out
 
 
 def detect_frame(input_image, model, lot_id):
@@ -157,30 +150,31 @@ def detect_frame(input_image, model, lot_id):
     else:
         img = input_image.copy()
 
-    # Apply flip if needed
-    
+    # 🔥 Apply flip dynamically
+    lot = get_lot_by_id(lot_id)
+    if lot and lot.get("flip", 0):
+        img = cv2.flip(img, 0)
 
     stalls = load_config(lot_id)
-    result = model.predict(img, conf=CONF, imgsz=1280, verbose=False)[0]
+    res = model.predict(img, conf=CONF, imgsz=1280, verbose=False)[0]
 
     boxes = []
-    for b in result.boxes:
-        cls = int(b.cls.item())
+    for b in res.boxes:
+        cls = int(b.cls)
         if cls in VEHICLE_CLASSES:
             x1,y1,x2,y2 = map(float, b.xyxy[0])
             if (x2-x1)*(y2-y1) >= FILTER_MIN_AREA:
                 boxes.append((x1,y1,x2,y2))
 
-    boxes = [b for b in boxes if any(compute_overlap(s, b)>0.05 for s in stalls)]
-    occ = assign_occupancy(stalls, boxes)
-    occ = smooth(occ)
+    boxes = [b for b in boxes if any(compute_overlap(s,b)>0.05 for s in stalls)]
+    occ = smooth(assign_occupancy(stalls, boxes))
 
     overlay = draw_overlay(img, stalls, occ, boxes)
-    _, frames, overlays, maps = get_paths(lot_id)
 
-    os.makedirs(overlays, exist_ok=True)
+    _, frames, overlays, _ = get_paths(lot_id)
     ts = int(time.time()*1000)
     overlay_path = os.path.join(overlays, f"overlay_{ts}.jpg")
+    os.makedirs(overlays, exist_ok=True)
     cv2.imwrite(overlay_path, overlay)
 
     draw_map(stalls, occ, lot_id)
@@ -198,14 +192,12 @@ def main():
     ensure_dirs(lot_id)
 
     _, frames_dir, _, _ = get_paths(lot_id)
-
     if not os.path.exists(frames_dir):
-        print("Missing frames folder")
+        print("Frames folder missing")
         return
 
     model = YOLO(MODEL_PATH)
-
-    print(f"Running detection for lot {lot_id}")
+    print(f"[Detect] Running detection for lot {lot_id}")
 
     while True:
         frames = sorted(glob.glob(os.path.join(frames_dir, "*.jpg")))
@@ -214,7 +206,7 @@ def main():
             continue
 
         latest = frames[-1]
-        print(f"[Lot {lot_id}] Processing {latest}")
+        print(f"[Detect] Lot {lot_id}: {latest}")
 
         try:
             overlay_path, occ = detect_frame(latest, model, lot_id)
@@ -227,8 +219,9 @@ def main():
                 lot_id=lot_id,
             )
         except Exception as e:
-            print(f"[Lot {lot_id}] Error:", e)
+            print(f"[Detect] ERROR {lot_id}: {e}")
 
+        # cleanup old frames
         for old in frames[:-1]:
             try: os.remove(old)
             except: pass

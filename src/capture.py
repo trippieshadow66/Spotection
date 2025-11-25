@@ -4,90 +4,87 @@ import numpy as np
 
 from src.db import get_lot_by_id
 
-# Per-lot flip rules (keep as-is for now)
-NEEDS_FLIP = {
-    1: True,   # Lot 1 camera upside-down
-    2: False,  # Lot 2 is upright
-}
-
-INTERVAL = 2.0  # seconds between images
+INTERVAL = 2.0  # seconds between frames
 
 
 def fetch_jpeg(url):
-    """JPEG snapshot grab (for cameras like lot 2)."""
+    """Fetch a single JPEG snapshot."""
     try:
         with urllib.request.urlopen(url, timeout=5) as resp:
             data = resp.read()
-        img_array = np.asarray(bytearray(data), dtype=np.uint8)
-        frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-        return frame
+        return cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
     except Exception as e:
-        print("Snapshot fetch error:", e)
+        print("Snapshot error:", e)
         return None
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Spotection frame capture")
-    parser.add_argument("--lot", type=int, default=1)
+    parser = argparse.ArgumentParser(description="Spotection Frame Capture")
+    parser.add_argument("--lot", type=int, required=True)
     args = parser.parse_args()
 
     lot_id = args.lot
     lot_info = get_lot_by_id(lot_id)
 
     if not lot_info:
-        raise RuntimeError(f"No lot with id={lot_id} found in database. Did you create it via the admin site?")
+        raise RuntimeError(f"Lot {lot_id} not found in DB")
 
     url = lot_info["stream_url"]
-    if not url:
-        raise RuntimeError(f"Lot {lot_id} has no stream_url set.")
+    is_jpeg = url.lower().endswith(".jpg") or "cgi-bin" in url.lower()
 
-    is_jpeg_camera = url.lower().endswith(".jpg") or "cgi-bin" in url.lower()
+    # --- Ensure dirs ---
+    base = f"data/lot{lot_id}"
+    frames = os.path.join(base, "frames")
+    overlays = os.path.join(base, "overlays")
+    maps = os.path.join(base, "maps")
+    for d in (base, frames, overlays, maps):
+        os.makedirs(d, exist_ok=True)
 
-    base_dir = os.path.join("data", f"lot{lot_id}")
-    output_dir = os.path.join(base_dir, "frames")
-    os.makedirs(output_dir, exist_ok=True)
-
-    print(f"Connecting to live stream for lot {lot_id}: {url}")
+    print(f"[Capture] Lot {lot_id} stream: {url}")
 
     cap = None
-    if not is_jpeg_camera:
+    if not is_jpeg:
         cap = cv2.VideoCapture(url)
         if not cap.isOpened():
-            raise RuntimeError("Unable to open MJPEG stream.")
+            raise RuntimeError("Cannot open MJPEG feed.")
 
-    print(f"Capturing frames for lot {lot_id} every {INTERVAL}s\n")
+    print(f"[Capture] Running every {INTERVAL}s")
 
     try:
         while True:
-            if is_jpeg_camera:
+            # 🔥 RELOAD FLIP SETTING DYNAMICALLY EVERY LOOP
+            lot_info = get_lot_by_id(lot_id)
+            flip = lot_info.get("flip", 0)
+
+            # ----- grab frame -----
+            if is_jpeg:
                 frame = fetch_jpeg(url)
                 if frame is None:
-                    print("Snapshot failed, retrying...")
                     time.sleep(1)
                     continue
             else:
-                ret, frame = cap.read()
-                if not ret:
-                    print("MJPEG read failed, reconnecting...")
+                ok, frame = cap.read()
+                if not ok:
                     time.sleep(1)
                     cap = cv2.VideoCapture(url)
                     continue
 
-            # Apply flip rule
-            if NEEDS_FLIP.get(lot_id, False):
+            # Apply flip
+            if flip:
                 frame = cv2.flip(frame, 0)
 
-            ts = int(time.time() * 1000)
-            save_path = os.path.join(output_dir, f"live_{ts}.jpg")
+            # Save
+            ts = int(time.time()*1000)
+            save_path = os.path.join(frames, f"live_{ts}.jpg")
             cv2.imwrite(save_path, frame)
-            print(f"[Lot {lot_id}] Saved {save_path}")
+            print(f"[Capture] Lot {lot_id}: {save_path}")
 
             time.sleep(INTERVAL)
 
     except KeyboardInterrupt:
-        print("Stopped by user.")
+        print("[Capture] Stopped")
     finally:
-        if cap is not None:
+        if cap:
             cap.release()
 
 

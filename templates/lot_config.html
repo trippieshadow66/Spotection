@@ -291,6 +291,9 @@
     <h1>Stall Configuration – {{ lot_name }}</h1>
     <div class="right-actions">
       <div class="meta">Lot ID: {{ lot_id }}</div>
+      <!-- Flip toggle button -->
+      <button id="flipToggle" class="secondary" style="padding:6px 10px;">Flip: <span id="flipState">OFF</span></button>
+
       <a class="back-button" href="/">← Back to Dashboard</a>
     </div>
   </header>
@@ -726,6 +729,38 @@ canvas.addEventListener("click", function (evt) {
 
         loadConfig();
       }
+
+      // === Flip toggle logic ===
+      async function loadFlip() {
+        try {
+          const resp = await fetch(`/api/lots/${lotId}`);
+          const data = await resp.json();
+          const flip = data.flip ? 1 : 0;
+          document.getElementById("flipState").textContent = flip ? "ON" : "OFF";
+        } catch(e) {
+          console.error(e);
+        }
+      }
+
+      async function toggleFlip() {
+        try {
+          const current = document.getElementById("flipState").textContent === "ON" ? 1 : 0;
+          const newVal = current ? 0 : 1;
+          await fetch(`/api/lots/${lotId}/flip`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ flip: newVal })
+          });
+          document.getElementById("flipState").textContent = newVal ? "ON" : "OFF";
+          imgEl.src = `/raw-photo/${lotId}?t=${Date.now()}`;
+
+        } catch(e) {
+          console.error(e);
+        }
+      }
+
+      document.getElementById("flipToggle").addEventListener("click", toggleFlip);
+      loadFlip();
 
       document.addEventListener("DOMContentLoaded", init);
     })();

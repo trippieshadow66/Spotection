@@ -11,79 +11,83 @@ def _connect():
 
 def init_db():
     """
-    Initialize all DB tables:
+    Initialize DB tables:
       - lot_config (legacy)
       - detection_results
       - lots (canonical)
-    Also ensures detection_results.lot_id exists.
-
-    PATCHED:
-      - Prevents reseeding default lots once DB exists.
-      - Only seeds on FIRST-EVER initialization.
+    Patch: flip column added, seeding only once.
     """
 
-    # PATCH: Detect if DB existed BEFORE running init
-    db_exists = os.path.exists(DB_PATH)
-
+    db_existed = os.path.exists(DB_PATH)
     conn = _connect()
     cur = conn.cursor()
 
-    # Legacy lot_config table
+    # -----------------------------
+    # Legacy TABLE: lot_config
+    # -----------------------------
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS lot_config (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        config_json TEXT NOT NULL,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )""")
+        CREATE TABLE IF NOT EXISTS lot_config (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            config_json TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
-    # Detection results table
+    # -----------------------------
+    # TABLE: detection_results
+    # -----------------------------
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS detection_results (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        frame_path TEXT,
-        overlay_path TEXT,
-        timestamp TEXT,
-        occupied_count INTEGER,
-        free_count INTEGER,
-        stall_status_json TEXT
-    )""")
-    conn.commit()
+        CREATE TABLE IF NOT EXISTS detection_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            frame_path TEXT,
+            overlay_path TEXT,
+            timestamp TEXT,
+            occupied_count INTEGER,
+            free_count INTEGER,
+            stall_status_json TEXT
+        )
+    """)
 
-    # Add lot_id column if missing
+    # Add lot_id column
     try:
         cur.execute("ALTER TABLE detection_results ADD COLUMN lot_id INTEGER DEFAULT 1")
-        conn.commit()
         print("DB: Added lot_id column to detection_results")
     except sqlite3.OperationalError:
-        pass  # already exists
+        pass
 
-    # Lots table
+    # -----------------------------
+    # TABLE: lots
+    # -----------------------------
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS lots (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        stream_url TEXT NOT NULL,
-        total_spots INTEGER DEFAULT 0,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )
+        CREATE TABLE IF NOT EXISTS lots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            stream_url TEXT NOT NULL,
+            total_spots INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
     """)
+
+    # Add flip column
+    try:
+        cur.execute("ALTER TABLE lots ADD COLUMN flip INTEGER DEFAULT 0")
+        print("DB: Added flip column to lots")
+    except sqlite3.OperationalError:
+        pass
+
     conn.commit()
 
-    # PATCHED SEEDING:
-    # Only seed if DB DID NOT EXIST before init()
-    if not db_exists:
-        print("DB: Performing FIRST-TIME seeding of default lots.")
-
-        default_lots = [
-            # Your classmate's working feed — KEEP IT
+    # -----------------------------
+    # Seed default lots ONLY IF DB is new
+    # -----------------------------
+    if not db_existed:
+        print("DB: First-time initialization, seeding default lots")
+        defaults = [
             ("West Campus Lot", "https://taco-about-python.com/video_feed", 45),
-
-            # East Campus garage — KEEP IT
             ("East Campus Garage", "http://170.249.152.2:8080/cgi-bin/viewer/video.jpg", 60),
         ]
-
-        for name, url, total in default_lots:
+        for name, url, total in defaults:
             cur.execute(
                 "INSERT INTO lots (name, stream_url, total_spots) VALUES (?, ?, ?)",
                 (name, url, total)
@@ -91,10 +95,12 @@ def init_db():
         conn.commit()
 
     conn.close()
-    print("Database initialized at", DB_PATH)
+    print("DB initialized.")
 
 
-# ------------------ Legacy lot_config helpers ------------------ #
+# ==============================================================
+# Legacy lot_config helpers
+# ==============================================================
 
 def save_lot_config(name, config_dict):
     conn = _connect()
@@ -116,10 +122,13 @@ def get_latest_lot_config():
     return json.loads(row[0]) if row else None
 
 
-# ------------------ Detection result helpers ------------------ #
+# ==============================================================
+# Detection results helpers
+# ==============================================================
 
 def save_detection_result(frame_path, overlay_path, occupied_count,
-                          free_count, stall_status, lot_id: int = 1):
+                          free_count, stall_status, lot_id=1):
+
     conn = _connect()
     cur = conn.cursor()
     cur.execute("""
@@ -128,13 +137,11 @@ def save_detection_result(frame_path, overlay_path, occupied_count,
          occupied_count, free_count, stall_status_json, lot_id)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     """, (
-        frame_path,
-        overlay_path,
+        frame_path, overlay_path,
         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        occupied_count,
-        free_count,
+        occupied_count, free_count,
         json.dumps(stall_status),
-        lot_id,
+        lot_id
     ))
     conn.commit()
     conn.close()
@@ -144,18 +151,12 @@ def _row_to_dict(row):
     if not row:
         return None
     keys = [
-        "id",
-        "frame_path",
-        "overlay_path",
-        "timestamp",
-        "occupied_count",
-        "free_count",
-        "stall_status_json",
-        "lot_id",
+        "id", "frame_path", "overlay_path", "timestamp",
+        "occupied_count", "free_count", "stall_status_json", "lot_id"
     ]
-    rec = dict(zip(keys, row))
-    rec["stall_status_json"] = json.loads(rec["stall_status_json"])
-    return rec
+    d = dict(zip(keys, row))
+    d["stall_status_json"] = json.loads(d["stall_status_json"])
+    return d
 
 
 def get_latest_detection():
@@ -167,7 +168,7 @@ def get_latest_detection():
     return _row_to_dict(row)
 
 
-def get_latest_detection_for_lot(lot_id: int):
+def get_latest_detection_for_lot(lot_id):
     conn = _connect()
     cur = conn.cursor()
     cur.execute(
@@ -179,29 +180,31 @@ def get_latest_detection_for_lot(lot_id: int):
     return _row_to_dict(row)
 
 
-# ------------------ Lots management ------------------ #
+# ==============================================================
+# Lot CRUD helpers
+# ==============================================================
 
 def _lot_row_to_dict(row):
     if not row:
         return None
-    keys = ["id", "name", "stream_url", "total_spots", "created_at"]
+    keys = ["id", "name", "stream_url", "total_spots", "created_at", "flip"]
     return dict(zip(keys, row))
 
 
 def get_all_lots():
     conn = _connect()
     cur = conn.cursor()
-    cur.execute("SELECT id, name, stream_url, total_spots, created_at FROM lots ORDER BY id ASC")
+    cur.execute("SELECT id, name, stream_url, total_spots, created_at, flip FROM lots ORDER BY id ASC")
     rows = cur.fetchall()
     conn.close()
     return [_lot_row_to_dict(r) for r in rows]
 
 
-def get_lot_by_id(lot_id: int):
+def get_lot_by_id(lot_id):
     conn = _connect()
     cur = conn.cursor()
     cur.execute(
-        "SELECT id, name, stream_url, total_spots, created_at FROM lots WHERE id = ?",
+        "SELECT id, name, stream_url, total_spots, created_at, flip FROM lots WHERE id = ?",
         (lot_id,)
     )
     row = cur.fetchone()
@@ -209,28 +212,26 @@ def get_lot_by_id(lot_id: int):
     return _lot_row_to_dict(row)
 
 
-def create_lot(name: str, stream_url: str, total_spots: int | None = None) -> int:
-    if total_spots is None:
-        total_spots = 0
+def create_lot(name, stream_url, total_spots=0) -> int:
     conn = _connect()
     cur = conn.cursor()
     cur.execute(
         "INSERT INTO lots (name, stream_url, total_spots) VALUES (?, ?, ?)",
         (name, stream_url, total_spots)
     )
-    lot_id = cur.lastrowid
+    new_id = cur.lastrowid
     conn.commit()
     conn.close()
-    return lot_id
+    return new_id
 
 
-def update_lot(lot_id: int, name: str | None = None,
-               stream_url: str | None = None,
-               total_spots: int | None = None):
+def update_lot(lot_id, name=None, stream_url=None, total_spots=None, flip=None):
     conn = _connect()
     cur = conn.cursor()
+
     fields = []
     params = []
+
     if name is not None:
         fields.append("name = ?")
         params.append(name)
@@ -240,17 +241,19 @@ def update_lot(lot_id: int, name: str | None = None,
     if total_spots is not None:
         fields.append("total_spots = ?")
         params.append(total_spots)
-    if not fields:
-        conn.close()
-        return
-    params.append(lot_id)
-    sql = "UPDATE lots SET " + ", ".join(fields) + " WHERE id = ?"
-    cur.execute(sql, params)
-    conn.commit()
+    if flip is not None:
+        fields.append("flip = ?")
+        params.append(flip)
+
+    if fields:
+        params.append(lot_id)
+        cur.execute(f"UPDATE lots SET {', '.join(fields)} WHERE id = ?", params)
+        conn.commit()
+
     conn.close()
 
 
-def delete_lot(lot_id: int):
+def delete_lot(lot_id):
     conn = _connect()
     cur = conn.cursor()
     cur.execute("DELETE FROM detection_results WHERE lot_id = ?", (lot_id,))

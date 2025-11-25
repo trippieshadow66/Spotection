@@ -6,40 +6,37 @@ from src.db import (
     delete_lot,
     get_lot_by_id,
     init_db,
+    update_lot,
 )
 from src.process_manager import process_manager
+
 import cv2, os, time, shutil, urllib.request, numpy as np, json
 
 app = Flask(__name__)
 
 FALLBACK_IMAGE = "static/img/fallback.jpg"
 
-# Per-lot flip rules
-NEEDS_FLIP = {
-    1: True,
-    2: False,
-}
 
-# ===================================================================
-# Helpers
-# ===================================================================
+# ==============================================================
+# Utility Functions
+# ==============================================================
 
 def fetch_jpeg(url):
     try:
         with urllib.request.urlopen(url, timeout=5) as resp:
             data = resp.read()
         return cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
-    except Exception as e:
-        print("fetch_jpeg error:", e)
+    except:
         return None
 
 
-def generate_raw_feed(lot_id: int):
+def generate_raw_feed(lot_id):
     lot = get_lot_by_id(lot_id)
     if not lot:
-        raise RuntimeError(f"Lot {lot_id} not found.")
+        raise RuntimeError("Lot missing")
 
     url = lot["stream_url"]
+    flip = lot["flip"]
     is_jpeg = url.lower().endswith(".jpg") or "cgi-bin" in url.lower()
 
     if is_jpeg:
@@ -48,55 +45,47 @@ def generate_raw_feed(lot_id: int):
             if frame is None:
                 time.sleep(1)
                 continue
-
-            if NEEDS_FLIP.get(lot_id, False):
+            if flip:
                 frame = cv2.flip(frame, 0)
 
-            _, buffer = cv2.imencode(".jpg", frame)
+            _, buf = cv2.imencode(".jpg", frame)
             yield (
-                b"--frame\r\nContent-Type: image/jpeg\r\n\r\n"
-                + buffer.tobytes()
-                + b"\r\n"
+                b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" +
+                buf.tobytes() +
+                b"\r\n"
             )
-
     else:
         cap = cv2.VideoCapture(url)
-        if not cap.isOpened():
-            raise RuntimeError(f"Cannot open stream: {url}")
-
         while True:
             ok, frame = cap.read()
             if not ok:
                 time.sleep(1)
+                cap = cv2.VideoCapture(url)
                 continue
 
-            if NEEDS_FLIP.get(lot_id, False):
+            if flip:
                 frame = cv2.flip(frame, 0)
 
-            _, buffer = cv2.imencode(".jpg", frame)
+            _, buf = cv2.imencode(".jpg", frame)
             yield (
-                b"--frame\r\nContent-Type: image/jpeg\r\n\r\n"
-                + buffer.tobytes()
-                + b"\r\n"
+                b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" +
+                buf.tobytes() +
+                b"\r\n"
             )
 
 
 def get_latest_jpg(folder):
     if not os.path.exists(folder):
         return None
-    files = [
-        os.path.join(folder, f)
-        for f in os.listdir(folder)
-        if f.lower().endswith(".jpg")
-    ]
-    if not files:
+    jpgs = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".jpg")]
+    if not jpgs:
         return None
-    return max(files, key=os.path.getmtime)
+    return max(jpgs, key=os.path.getmtime)
 
 
-# ===================================================================
-# Page Routes
-# ===================================================================
+# ==============================================================
+# PAGE ROUTES
+# ==============================================================
 
 @app.route("/")
 def home():
@@ -104,33 +93,21 @@ def home():
 
 
 @app.route("/admin/lot-config/<int:lot_id>")
-def lot_config_page(lot_id):
+def lot_config_html(lot_id):
     lot = get_lot_by_id(lot_id)
     if not lot:
         abort(404)
     return render_template("lot_config.html", lot_id=lot_id, lot_name=lot["name"])
 
 
-# ===================================================================
-# Raw Feeds
-# ===================================================================
+# ==============================================================
+# RAW FEEDS
+# ==============================================================
 
 @app.route("/raw-feed/<int:lot_id>")
-def raw_feed_by_id(lot_id):
-    return Response(
-        generate_raw_feed(lot_id),
-        mimetype="multipart/x-mixed-replace; boundary=frame",
-    )
-
-
-@app.route("/raw-feed")
-def raw_feed_1():
-    return raw_feed_by_id(1)
-
-
-@app.route("/raw-feed-2")
-def raw_feed_2():
-    return raw_feed_by_id(2)
+def feed(lot_id):
+    return Response(generate_raw_feed(lot_id),
+        mimetype="multipart/x-mixed-replace; boundary=frame")
 
 
 @app.route("/raw-photo/<int:lot_id>")
@@ -140,8 +117,9 @@ def raw_photo(lot_id):
         abort(404)
 
     url = lot["stream_url"]
-    frame = fetch_jpeg(url)
+    flip = lot["flip"]
 
+    frame = fetch_jpeg(url)
     if frame is None:
         cap = cv2.VideoCapture(url)
         ok, frame = cap.read()
@@ -149,64 +127,40 @@ def raw_photo(lot_id):
         if not ok:
             return send_file(FALLBACK_IMAGE, mimetype="image/jpeg")
 
-    if NEEDS_FLIP.get(lot_id, False):
+    if flip:
         frame = cv2.flip(frame, 0)
 
-    base = os.path.join("data", f"lot{lot_id}")
+    base = f"data/lot{lot_id}"
     os.makedirs(base, exist_ok=True)
-    temp_path = os.path.join(base, "_config_snapshot.jpg")
-    cv2.imwrite(temp_path, frame)
-    return send_file(temp_path, mimetype="image/jpeg")
+    path = os.path.join(base, "_config_snapshot.jpg")
+    cv2.imwrite(path, frame)
+    return send_file(path, mimetype="image/jpeg")
 
 
-# ===================================================================
-# Overlay + Map
-# ===================================================================
+# ==============================================================
+# MAP + OVERLAY IMAGE
+# ==============================================================
 
 @app.route("/overlay-latest/<int:lot_id>")
 def overlay_latest(lot_id):
-    path = get_latest_jpg(f"data/lot{lot_id}/overlays")
-    return send_file(path or FALLBACK_IMAGE, mimetype="image/jpeg")
+    p = get_latest_jpg(f"data/lot{lot_id}/overlays")
+    return send_file(p or FALLBACK_IMAGE, mimetype="image/jpeg")
 
 
 @app.route("/map-image/<int:lot_id>")
-def map_latest(lot_id):
-    path = get_latest_jpg(f"data/lot{lot_id}/maps")
-    return send_file(path or FALLBACK_IMAGE, mimetype="image/jpeg")
+def map_image(lot_id):
+    p = get_latest_jpg(f"data/lot{lot_id}/maps")
+    return send_file(p or FALLBACK_IMAGE, mimetype="image/jpeg")
 
 
-# Backward compatibility
-@app.route("/overlay-latest")
-def overlay1():
-    return overlay_latest(1)
+# ==============================================================
+# PARKING STATS
+# ==============================================================
 
-@app.route("/overlay-latest-2")
-def overlay2():
-    return overlay_latest(2)
-
-
-@app.route("/map-image")
-def map1():
-    return map_latest(1)
-
-@app.route("/map-image-2")
-def map2():
-    return map_latest(2)
-
-
-# ===================================================================
-# Parking Stats API
-# ===================================================================
-
-def _parking_data(lot_id: int):
+def _parking_data(lot_id):
     d = get_latest_detection_for_lot(lot_id)
     if not d:
-        return {
-            "available": 0,
-            "total": 0,
-            "percentage": 0,
-            "last_updated": "No data",
-        }
+        return {"available": 0, "total": 0, "percentage": 0, "last_updated": "No data"}
 
     occ = d["occupied_count"]
     free = d["free_count"]
@@ -221,15 +175,13 @@ def _parking_data(lot_id: int):
 
 
 @app.route("/api/parking-data/<int:lot_id>")
-def api_stats(lot_id):
-    if not get_lot_by_id(lot_id):
-        abort(404)
+def api_parking(lot_id):
     return jsonify(_parking_data(lot_id))
 
 
-# ===================================================================
-# Lot Management (Admin)
-# ===================================================================
+# ==============================================================
+# LOT MANAGEMENT
+# ==============================================================
 
 @app.route("/api/lots", methods=["GET"])
 def api_get_lots():
@@ -238,9 +190,10 @@ def api_get_lots():
     for lot in lots:
         lid = lot["id"]
         out.append({
-            "id": lid,
+            "id": lot["id"],
             "name": lot["name"],
-            "totalSpots": lot["total_spots"] or 0,
+            "totalSpots": lot["total_spots"],
+            "flip": lot["flip"],
             "rawFeed": f"/raw-feed/{lid}",
             "overlayFeed": f"/overlay-latest/{lid}",
             "mapImage": f"/map-image/{lid}",
@@ -249,30 +202,28 @@ def api_get_lots():
     return jsonify({"lots": out})
 
 
+@app.route("/api/lots/<int:lot_id>", methods=["GET"])
+def api_get_lot(lot_id):
+    lot = get_lot_by_id(lot_id)
+    if not lot:
+        return jsonify({"error": "Lot not found"}), 404
+    return jsonify(lot)
+
+
 @app.route("/api/lots", methods=["POST"])
 def api_create_lot():
-    """
-    Create a new lot from JSON body.
-
-    Accepts either:
-      { "name": "...", "cameraUrl": "...", "totalSpots": 50 }
-    or:
-      { "name": "...", "camera_url": "...", "total_spots": 50 }
-    """
-    data = request.get_json(force=True) or {}
+    data = request.get_json(force=True)
 
     name = data.get("name")
-    camera = data.get("cameraUrl") or data.get("camera_url")
-    total = data.get("totalSpots")
-    if total is None:
-        total = data.get("total_spots", 0)
+    camera = data.get("cameraUrl")
+    total = data.get("totalSpots", 0)
 
     if not name or not camera:
-        return jsonify({"error": "Missing name or camera URL"}), 400
+        return jsonify({"error": "Missing name or camera"}), 400
 
     try:
         total = int(total)
-    except Exception:
+    except:
         total = 0
 
     lot_id = create_lot(name, camera, total)
@@ -282,57 +233,52 @@ def api_create_lot():
     for sub in ("frames", "overlays", "maps"):
         os.makedirs(os.path.join(base, sub), exist_ok=True)
 
-    # Create empty stall config
-    config_path = os.path.join(base, "lot_config.json")
-    if not os.path.exists(config_path):
-        with open(config_path, "w", encoding="utf-8") as f:
-            f.write('{"stalls": []}\n')
+    # Make empty config
+    cfg = os.path.join(base, "lot_config.json")
+    if not os.path.exists(cfg):
+        with open(cfg, "w") as f:
+            f.write('{"stalls": []}')
 
-    # Start processes for this lot 🎉
     process_manager.start_lot(lot_id)
 
-    lot = get_lot_by_id(lot_id)
-
-    payload = {
-        "id": lot_id,
-        "name": lot["name"],
-        "totalSpots": lot["total_spots"] or 0,
-        "rawFeed": f"/raw-feed/{lot_id}",
-        "overlayFeed": f"/overlay-latest/{lot_id}",
-        "mapImage": f"/map-image/{lot_id}",
-        "apiEndpoint": f"/api/parking-data/{lot_id}",
-    }
-
-    # Keep old shape { "lot": {...} } for safety
-    return jsonify({"lot": payload}), 201
+    return jsonify({"lot": get_lot_by_id(lot_id)}), 201
 
 
 @app.route("/api/lots/<int:lot_id>", methods=["DELETE"])
-def api_delete_lot(lot_id):
-
+def api_delete(lot_id):
     if not get_lot_by_id(lot_id):
         return jsonify({"error": "Lot not found"}), 404
 
-    # Stop running scripts
     process_manager.stop_lot(lot_id)
-
-    # Remove database rows
     delete_lot(lot_id)
 
-    # Remove folders
     base = f"data/lot{lot_id}"
-    if os.path.exists(base):
-        shutil.rmtree(base, ignore_errors=True)
+    shutil.rmtree(base, ignore_errors=True)
 
     return jsonify({"status": "ok"})
 
 
-# ===================================================================
-# Stall Config (GET + POST)
-# ===================================================================
+# ===== Flip API =====
+
+@app.route("/api/lots/<int:lot_id>/flip", methods=["POST"])
+def api_set_flip(lot_id):
+    if not get_lot_by_id(lot_id):
+        return jsonify({"error": "Lot not found"}), 404
+
+    data = request.get_json(force=True)
+    flip = data.get("flip")
+
+    if flip not in (0,1):
+        return jsonify({"error": "flip must be 0 or 1"}), 400
+
+    update_lot(lot_id, flip=flip)
+    return jsonify({"status": "ok", "flip": flip})
+
+
+# ===== Stall Config API =====
 
 @app.route("/api/lots/<int:lot_id>/config", methods=["GET"])
-def api_get_lot_config(lot_id):
+def api_get_config(lot_id):
     if not get_lot_by_id(lot_id):
         return jsonify({"error": "Lot not found"}), 404
 
@@ -340,41 +286,30 @@ def api_get_lot_config(lot_id):
     if not os.path.exists(path):
         return jsonify({"stalls": []})
 
-    with open(path, "r", encoding="utf-8") as f:
-        try:
-            return Response(f.read(), mimetype="application/json")
-        except Exception:
-            return jsonify({"stalls": []})
+    with open(path, "r") as f:
+        return Response(f.read(), mimetype="application/json")
 
 
 @app.route("/api/lots/<int:lot_id>/config", methods=["POST"])
-def api_save_lot_config(lot_id):
+def api_save_config(lot_id):
     if not get_lot_by_id(lot_id):
         return jsonify({"error": "Lot not found"}), 404
 
-    data = request.get_json(force=True) or {}
+    data = request.get_json(force=True)
     stalls = data.get("stalls")
     if stalls is None:
         return jsonify({"error": "Missing stalls"}), 400
 
-    base = f"data/lot{lot_id}"
-    os.makedirs(base, exist_ok=True)
-    config_path = os.path.join(base, "lot_config.json")
-
-    try:
-        with open(config_path, "w", encoding="utf-8") as f:
-            json.dump({"stalls": stalls}, f, indent=2)
-            f.write("\n")
-    except Exception as e:
-        print("Error writing stall config:", e)
-        return jsonify({"error": "Failed to save config"}), 500
+    path = f"data/lot{lot_id}/lot_config.json"
+    with open(path, "w") as f:
+        json.dump({"stalls": stalls}, f, indent=2)
 
     return jsonify({"status": "ok"})
 
 
-# ===================================================================
-# Main entry
-# ===================================================================
+# ==============================================================
+# Launch
+# ==============================================================
 
 if __name__ == "__main__":
     init_db()
