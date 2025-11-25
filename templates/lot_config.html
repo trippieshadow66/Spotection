@@ -304,8 +304,8 @@
         <!-- Live feed background (single photo so pixels match detection frames) -->
         <img
           id="liveFeed"
-          src="/raw-photo/{{ lot_id }}"
-          alt="Live feed for lot {{ lot_name }}"
+          src="/frame-latest/{{ lot_id }}"
+          alt="Frame for lot {{ lot_name }}"
         />
         <!-- Transparent drawing canvas -->
         <canvas id="configCanvas"></canvas>
@@ -751,7 +751,8 @@ canvas.addEventListener("click", function (evt) {
             body: JSON.stringify({ flip: newVal })
           });
           document.getElementById("flipState").textContent = newVal ? "ON" : "OFF";
-          imgEl.src = `/raw-photo/${lotId}?t=${Date.now()}`;
+          imgEl.src = `/frame-latest/${lotId}?t=${Date.now()}`;
+
 
         } catch(e) {
           console.error(e);

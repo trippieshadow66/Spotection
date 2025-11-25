@@ -16,60 +16,22 @@ app = Flask(__name__)
 
 FALLBACK_IMAGE = "static/img/fallback.jpg"
 
-# Utility Functions
+# ============================================================
+# ALWAYS USE SAVED FRAMES — REMOVE LIVE FEED DEPENDENCY
+# ============================================================
 
-def fetch_jpeg(url):
-    try:
-        with urllib.request.urlopen(url, timeout=5) as resp:
-            data = resp.read()
-        return cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
-    except:
-        return None
+@app.route("/frame-latest/<int:lot_id>")
+def frame_latest(lot_id):
+    """Serve most recent captured frame for stall config + dashboard."""
+    p = f"data/lot{lot_id}/frames/latest.jpg"
+    if os.path.exists(p):
+        return send_file(p, mimetype="image/jpeg")
+    return send_file(FALLBACK_IMAGE, mimetype="image/jpeg")
 
 
-def generate_raw_feed(lot_id):
-    lot = get_lot_by_id(lot_id)
-    if not lot:
-        raise RuntimeError("Lot missing")
-
-    url = lot["stream_url"]
-    flip = lot["flip"]
-    is_jpeg = url.lower().endswith(".jpg") or "cgi-bin" in url.lower()
-
-    if is_jpeg:
-        while True:
-            frame = fetch_jpeg(url)
-            if frame is None:
-                time.sleep(1)
-                continue
-            if flip:
-                frame = cv2.flip(frame, 0)
-
-            _, buf = cv2.imencode(".jpg", frame)
-            yield (
-                b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" +
-                buf.tobytes() +
-                b"\r\n"
-            )
-    else:
-        cap = cv2.VideoCapture(url)
-        while True:
-            ok, frame = cap.read()
-            if not ok:
-                time.sleep(1)
-                cap = cv2.VideoCapture(url)
-                continue
-
-            if flip:
-                frame = cv2.flip(frame, 0)
-
-            _, buf = cv2.imencode(".jpg", frame)
-            yield (
-                b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" +
-                buf.tobytes() +
-                b"\r\n"
-            )
-
+# ============================================================
+# HELPERS
+# ============================================================
 
 def get_latest_jpg(folder):
     if not os.path.exists(folder):
@@ -79,11 +41,15 @@ def get_latest_jpg(folder):
         return None
     return max(jpgs, key=os.path.getmtime)
 
-# PAGE ROUTES
+
+# ============================================================
+# ROUTES
+# ============================================================
 
 @app.route("/")
 def home():
     return render_template("home.html")
+
 
 @app.route("/admin/lot-config/<int:lot_id>")
 def lot_config_html(lot_id):
@@ -92,41 +58,6 @@ def lot_config_html(lot_id):
         abort(404)
     return render_template("lot_config.html", lot_id=lot_id, lot_name=lot["name"])
 
-# RAW FEEDS
-
-@app.route("/raw-feed/<int:lot_id>")
-def feed(lot_id):
-    return Response(generate_raw_feed(lot_id),
-        mimetype="multipart/x-mixed-replace; boundary=frame")
-
-
-@app.route("/raw-photo/<int:lot_id>")
-def raw_photo(lot_id):
-    lot = get_lot_by_id(lot_id)
-    if not lot:
-        abort(404)
-
-    url = lot["stream_url"]
-    flip = lot["flip"]
-
-    frame = fetch_jpeg(url)
-    if frame is None:
-        cap = cv2.VideoCapture(url)
-        ok, frame = cap.read()
-        cap.release()
-        if not ok:
-            return send_file(FALLBACK_IMAGE, mimetype="image/jpeg")
-
-    if flip:
-        frame = cv2.flip(frame, 0)
-
-    base = f"data/lot{lot_id}"
-    os.makedirs(base, exist_ok=True)
-    path = os.path.join(base, "_config_snapshot.jpg")
-    cv2.imwrite(path, frame)
-    return send_file(path, mimetype="image/jpeg")
-
-# MAP + OVERLAY IMAGE
 
 @app.route("/overlay-latest/<int:lot_id>")
 def overlay_latest(lot_id):
@@ -139,7 +70,10 @@ def map_image(lot_id):
     p = get_latest_jpg(f"data/lot{lot_id}/maps")
     return send_file(p or FALLBACK_IMAGE, mimetype="image/jpeg")
 
-# PARKING STATS
+
+# ============================================================
+# PARKING DATA API
+# ============================================================
 
 def _parking_data(lot_id):
     d = get_latest_detection_for_lot(lot_id)
@@ -157,11 +91,15 @@ def _parking_data(lot_id):
         "last_updated": d["timestamp"],
     }
 
+
 @app.route("/api/parking-data/<int:lot_id>")
 def api_parking(lot_id):
     return jsonify(_parking_data(lot_id))
 
+
+# ============================================================
 # LOT MANAGEMENT
+# ============================================================
 
 @app.route("/api/lots", methods=["GET"])
 def api_get_lots():
@@ -174,12 +112,13 @@ def api_get_lots():
             "name": lot["name"],
             "totalSpots": lot["total_spots"],
             "flip": lot["flip"],
-            "rawFeed": f"/raw-feed/{lid}",
             "overlayFeed": f"/overlay-latest/{lid}",
             "mapImage": f"/map-image/{lid}",
+            "rawFrame": f"/frame-latest/{lid}",   # <— new!
             "apiEndpoint": f"/api/parking-data/{lid}",
         })
     return jsonify({"lots": out})
+
 
 @app.route("/api/lots/<int:lot_id>", methods=["GET"])
 def api_get_lot(lot_id):
@@ -187,6 +126,7 @@ def api_get_lot(lot_id):
     if not lot:
         return jsonify({"error": "Lot not found"}), 404
     return jsonify(lot)
+
 
 @app.route("/api/lots", methods=["POST"])
 def api_create_lot():
@@ -206,12 +146,10 @@ def api_create_lot():
 
     lot_id = create_lot(name, camera, total)
 
-    # Make folders
     base = f"data/lot{lot_id}"
     for sub in ("frames", "overlays", "maps"):
         os.makedirs(os.path.join(base, sub), exist_ok=True)
 
-    # Make empty config
     cfg = os.path.join(base, "lot_config.json")
     if not os.path.exists(cfg):
         with open(cfg, "w") as f:
@@ -220,6 +158,7 @@ def api_create_lot():
     process_manager.start_lot(lot_id)
 
     return jsonify({"lot": get_lot_by_id(lot_id)}), 201
+
 
 @app.route("/api/lots/<int:lot_id>", methods=["DELETE"])
 def api_delete(lot_id):
@@ -234,7 +173,10 @@ def api_delete(lot_id):
 
     return jsonify({"status": "ok"})
 
-# ===== Flip API =====
+
+# ============================================================
+# FLIP API
+# ============================================================
 
 @app.route("/api/lots/<int:lot_id>/flip", methods=["POST"])
 def api_set_flip(lot_id):
@@ -244,13 +186,16 @@ def api_set_flip(lot_id):
     data = request.get_json(force=True)
     flip = data.get("flip")
 
-    if flip not in (0,1):
+    if flip not in (0, 1):
         return jsonify({"error": "flip must be 0 or 1"}), 400
 
     update_lot(lot_id, flip=flip)
     return jsonify({"status": "ok", "flip": flip})
 
-# ===== Stall Config API =====
+
+# ============================================================
+# STALL CONFIG API
+# ============================================================
 
 @app.route("/api/lots/<int:lot_id>/config", methods=["GET"])
 def api_get_config(lot_id):
@@ -263,6 +208,7 @@ def api_get_config(lot_id):
 
     with open(path, "r") as f:
         return Response(f.read(), mimetype="application/json")
+
 
 @app.route("/api/lots/<int:lot_id>/config", methods=["POST"])
 def api_save_config(lot_id):
@@ -280,8 +226,15 @@ def api_save_config(lot_id):
 
     return jsonify({"status": "ok"})
 
-# Launch
+
+# ============================================================
+# START APP
+# ============================================================
 
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    lots = get_all_lots()
+    lot_ids = [lot["id"] for lot in lots]
+    print(f"[PM] Auto-starting lots: {lot_ids}")
+    process_manager.start_all(lot_ids)
+    app.run(debug=False, threaded=True, host="0.0.0.0", port=5000)

@@ -1039,14 +1039,14 @@
         return {
           id: raw.id,
           name: raw.name,
-          totalSpots: raw.total_spots ?? raw.totalSpots ?? 0,
-          availableSpots: raw.available_spots ?? raw.availableSpots ?? 0,
-          rawFeed: raw.raw_feed_url ?? raw.rawFeed ?? '/raw-feed',
-          overlayFeed: raw.overlay_url ?? raw.overlayFeed ?? '/overlay-latest',
-          mapImage: raw.map_url ?? raw.mapImage ?? '/map-image',
-          statsUrl: raw.stats_url ?? raw.apiEndpoint ?? null
+          totalSpots: raw.totalSpots ?? raw.total_spots ?? 0,
+          availableSpots: raw.availableSpots ?? 0,
+          rawFeed: raw.rawFrame,                     // ✅ NEW — latest frame
+          overlayFeed: raw.overlayFeed,
+          mapImage: raw.mapImage,
+          statsUrl: raw.apiEndpoint
         };
-      }
+}
 
       function renderParkingLots() {
         // Render navigation dropdown
@@ -1114,10 +1114,10 @@
                 <p>AI-powered detection delivering real-time stall availability and map visualization</p>
 
                 <div class="overlay-container">
-                  <!-- Raw Live Feed -->
+                  <!-- Live Feed -->
                   <div class="overlay-wrapper">
                     <h2>Live Camera Feed - ${lot.name}</h2>
-                    <img id="live-raw-${lot.id}" src="${lot.rawFeed}" alt="Raw Camera Feed" class="overlay-image">
+                    <img id="live-raw-${lot.id}" src="/frame-latest/${lot.id}" class="overlay-image">
                   </div>
 
                   <!-- AI Overlay View -->

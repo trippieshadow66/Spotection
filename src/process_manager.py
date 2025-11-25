@@ -1,16 +1,24 @@
-import subprocess, sys, time
+import subprocess, sys, time, os
 
 class ProcessManager:
     def __init__(self):
         self.capture_processes = {}
         self.detect_processes = {}
 
+    def ensure_folders(self, lot_id):
+        base = f"data/lot{lot_id}"
+        for sub in ("frames", "overlays", "maps"):
+            os.makedirs(os.path.join(base, sub), exist_ok=True)
+
     def start_lot(self, lot_id):
         print(f"[PM] Starting lot {lot_id}")
 
+        # Auto-create folders for migrated DBs
+        self.ensure_folders(lot_id)
+
         # Start capture
         cap = subprocess.Popen(
-            [sys.executable, "-m", "src.capture", "--lot", str(lot_id)],
+            [sys.executable, "-m", "capture", "--lot", str(lot_id)],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         self.capture_processes[lot_id] = cap
