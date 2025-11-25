@@ -52,7 +52,7 @@ def main():
 
     try:
         while True:
-            # 🔥 RELOAD FLIP SETTING DYNAMICALLY EVERY LOOP
+            # RELOAD FLIP SETTING DYNAMICALLY EVERY LOOP
             lot_info = get_lot_by_id(lot_id)
             flip = lot_info.get("flip", 0)
 

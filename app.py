@@ -16,10 +16,7 @@ app = Flask(__name__)
 
 FALLBACK_IMAGE = "static/img/fallback.jpg"
 
-
-# ==============================================================
 # Utility Functions
-# ==============================================================
 
 def fetch_jpeg(url):
     try:
@@ -82,15 +79,11 @@ def get_latest_jpg(folder):
         return None
     return max(jpgs, key=os.path.getmtime)
 
-
-# ==============================================================
 # PAGE ROUTES
-# ==============================================================
 
 @app.route("/")
 def home():
     return render_template("home.html")
-
 
 @app.route("/admin/lot-config/<int:lot_id>")
 def lot_config_html(lot_id):
@@ -99,10 +92,7 @@ def lot_config_html(lot_id):
         abort(404)
     return render_template("lot_config.html", lot_id=lot_id, lot_name=lot["name"])
 
-
-# ==============================================================
 # RAW FEEDS
-# ==============================================================
 
 @app.route("/raw-feed/<int:lot_id>")
 def feed(lot_id):
@@ -136,10 +126,7 @@ def raw_photo(lot_id):
     cv2.imwrite(path, frame)
     return send_file(path, mimetype="image/jpeg")
 
-
-# ==============================================================
 # MAP + OVERLAY IMAGE
-# ==============================================================
 
 @app.route("/overlay-latest/<int:lot_id>")
 def overlay_latest(lot_id):
@@ -152,10 +139,7 @@ def map_image(lot_id):
     p = get_latest_jpg(f"data/lot{lot_id}/maps")
     return send_file(p or FALLBACK_IMAGE, mimetype="image/jpeg")
 
-
-# ==============================================================
 # PARKING STATS
-# ==============================================================
 
 def _parking_data(lot_id):
     d = get_latest_detection_for_lot(lot_id)
@@ -173,15 +157,11 @@ def _parking_data(lot_id):
         "last_updated": d["timestamp"],
     }
 
-
 @app.route("/api/parking-data/<int:lot_id>")
 def api_parking(lot_id):
     return jsonify(_parking_data(lot_id))
 
-
-# ==============================================================
 # LOT MANAGEMENT
-# ==============================================================
 
 @app.route("/api/lots", methods=["GET"])
 def api_get_lots():
@@ -201,14 +181,12 @@ def api_get_lots():
         })
     return jsonify({"lots": out})
 
-
 @app.route("/api/lots/<int:lot_id>", methods=["GET"])
 def api_get_lot(lot_id):
     lot = get_lot_by_id(lot_id)
     if not lot:
         return jsonify({"error": "Lot not found"}), 404
     return jsonify(lot)
-
 
 @app.route("/api/lots", methods=["POST"])
 def api_create_lot():
@@ -243,7 +221,6 @@ def api_create_lot():
 
     return jsonify({"lot": get_lot_by_id(lot_id)}), 201
 
-
 @app.route("/api/lots/<int:lot_id>", methods=["DELETE"])
 def api_delete(lot_id):
     if not get_lot_by_id(lot_id):
@@ -256,7 +233,6 @@ def api_delete(lot_id):
     shutil.rmtree(base, ignore_errors=True)
 
     return jsonify({"status": "ok"})
-
 
 # ===== Flip API =====
 
@@ -274,7 +250,6 @@ def api_set_flip(lot_id):
     update_lot(lot_id, flip=flip)
     return jsonify({"status": "ok", "flip": flip})
 
-
 # ===== Stall Config API =====
 
 @app.route("/api/lots/<int:lot_id>/config", methods=["GET"])
@@ -288,7 +263,6 @@ def api_get_config(lot_id):
 
     with open(path, "r") as f:
         return Response(f.read(), mimetype="application/json")
-
 
 @app.route("/api/lots/<int:lot_id>/config", methods=["POST"])
 def api_save_config(lot_id):
@@ -306,10 +280,7 @@ def api_save_config(lot_id):
 
     return jsonify({"status": "ok"})
 
-
-# ==============================================================
 # Launch
-# ==============================================================
 
 if __name__ == "__main__":
     init_db()

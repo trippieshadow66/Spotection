@@ -22,9 +22,8 @@ def init_db():
     conn = _connect()
     cur = conn.cursor()
 
-    # -----------------------------
     # Legacy TABLE: lot_config
-    # -----------------------------
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS lot_config (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,9 +33,7 @@ def init_db():
         )
     """)
 
-    # -----------------------------
     # TABLE: detection_results
-    # -----------------------------
     cur.execute("""
         CREATE TABLE IF NOT EXISTS detection_results (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,9 +53,8 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
-    # -----------------------------
+
     # TABLE: lots
-    # -----------------------------
     cur.execute("""
         CREATE TABLE IF NOT EXISTS lots (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,9 +74,9 @@ def init_db():
 
     conn.commit()
 
-    # -----------------------------
+
     # Seed default lots ONLY IF DB is new
-    # -----------------------------
+
     if not db_existed:
         print("DB: First-time initialization, seeding default lots")
         defaults = [
@@ -97,10 +93,7 @@ def init_db():
     conn.close()
     print("DB initialized.")
 
-
-# ==============================================================
 # Legacy lot_config helpers
-# ==============================================================
 
 def save_lot_config(name, config_dict):
     conn = _connect()
@@ -121,10 +114,7 @@ def get_latest_lot_config():
     conn.close()
     return json.loads(row[0]) if row else None
 
-
-# ==============================================================
 # Detection results helpers
-# ==============================================================
 
 def save_detection_result(frame_path, overlay_path, occupied_count,
                           free_count, stall_status, lot_id=1):
@@ -179,10 +169,7 @@ def get_latest_detection_for_lot(lot_id):
     conn.close()
     return _row_to_dict(row)
 
-
-# ==============================================================
 # Lot CRUD helpers
-# ==============================================================
 
 def _lot_row_to_dict(row):
     if not row:

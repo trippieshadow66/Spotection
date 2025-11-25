@@ -692,7 +692,7 @@
 
         setupCanvasFromImage();
 
-        /* ====== PATCH: block clicks outside image ====== */
+        /* block clicks outside image */
 canvas.addEventListener("click", function (evt) {
   const rect = imgEl.getBoundingClientRect();
 
@@ -708,7 +708,6 @@ canvas.addEventListener("click", function (evt) {
 
   onCanvasClick(evt);
 });
-/* ====== END PATCH ====== */
 
 
         document

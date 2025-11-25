@@ -150,7 +150,7 @@ def detect_frame(input_image, model, lot_id):
     else:
         img = input_image.copy()
 
-    # 🔥 Apply flip dynamically
+    # Apply flip dynamically
     lot = get_lot_by_id(lot_id)
     if lot and lot.get("flip", 0):
         img = cv2.flip(img, 0)
