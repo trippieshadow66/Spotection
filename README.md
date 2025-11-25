@@ -74,6 +74,7 @@ Custom Background Process Manager
 1. Clone Repository
 
 git clone https://github.com/trippieshadow66/Spotection.git
+
 cd Spotection
 
 2. Create Virtual Environment
@@ -81,16 +82,19 @@ cd Spotection
 Windows (PowerShell):
 
 python -m venv venv
+
 venv\Scripts\Activate.ps1
 
 macOS / Linux:
 
 python3 -m venv venv
+
 source venv/bin/activate
 
 3. Install Dependencies
 
 python -m pip install --upgrade pip
+
 pip install -r requirements.txt
 
 4. First Run — Initialize DB & Start System
