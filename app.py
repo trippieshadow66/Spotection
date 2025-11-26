@@ -20,45 +20,41 @@ FALLBACK_IMAGE = "static/img/fallback.jpg"
 
 def get_single_frame_universal(url, flip=0):
     """
-    Attempts to grab a single frame from ANY type of camera endpoint:
-    - HTTP .jpg endpoints
-    - MJPEG streams
-    - RTSP streams
-    - IP webcams
+    Clean, universal, reliable frame capture.
+    - Tries direct JPEG first (fastest)
+    - Falls back to VideoCapture for all MJPEG/RTSP streams
+    - RETURNS EXACTLY ONE FRAME OR NONE
     """
 
+    # ---------- TRY SNAPSHOT MODE ----------
     try:
-        # Case 1 — direct JPEG snapshot URL
-        if url.endswith(".jpg") or "jpg" in url.lower():
-            req = urllib.request.urlopen(url, timeout=8)
+        if url.lower().endswith(".jpg") or "snapshot" in url.lower():
+            req = urllib.request.urlopen(url, timeout=5)
             arr = np.asarray(bytearray(req.read()), dtype=np.uint8)
             img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+            if img is not None:
+                if flip:
+                    img = cv2.rotate(img, cv2.ROTATE_180)
+                return img
+    except:
+        pass
 
-        else:
-            # Case 2 — RTSP or MJPEG or unknown
-            cap = cv2.VideoCapture(url)
-            if not cap.isOpened():
-                print("[Grab] Failed to open stream")
-                return None
-
-            ok, img = cap.read()
+    # ---------- TRY OPENCV VIDEOCAPTURE (FOR ANY STREAM TYPE) ----------
+    try:
+        cap = cv2.VideoCapture(url)
+        if cap.isOpened():
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            ok, frame = cap.read()
             cap.release()
-            if not ok:
-                print("[Grab] Failed to read frame")
-                return None
-
-        if img is None:
-            return None
-
-        # Apply flip if required
-        if flip:
-            img = cv2.rotate(img, cv2.ROTATE_180)
-
-        return img
-
+            if ok and frame is not None:
+                if flip:
+                    frame = cv2.rotate(frame, cv2.ROTATE_180)
+                return frame
     except Exception as e:
-        print(f"[Grab] ERROR: {e}")
-        return None
+        print("[VideoCapture ERROR]", e)
+
+    # ---------- FAILED ----------
+    return None
     
 # ============================================================
 # ALWAYS USE SAVED FRAMES — REMOVE LIVE FEED DEPENDENCY

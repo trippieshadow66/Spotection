@@ -19,7 +19,7 @@ class ProcessManager:
         # Start capture
         cap = subprocess.Popen(
             [sys.executable, "-m", "capture", "--lot", str(lot_id)],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            
         )
         self.capture_processes[lot_id] = cap
 
@@ -27,7 +27,7 @@ class ProcessManager:
 
         det = subprocess.Popen(
             [sys.executable, "-m", "src.detect", "--lot", str(lot_id)],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            
         )
         self.detect_processes[lot_id] = det
 
