@@ -10,12 +10,19 @@ except:
     SHAPELY_OK = False
 
 MODEL_PATH = "yolov8s.pt"
-CONF = 0.25
+CONF = 0.2
 VEHICLE_CLASSES = {2, 3, 5, 7}
 CHECK_INTERVAL = 2
 FILTER_MIN_AREA = 800
 HISTORY_LEN = 3
 KEEP = 5   # keep last overlays/maps
+
+# How strict we are about overlap between a stall and a vehicle box
+STALL_OVERLAP_FRAC = 0.3   # fraction of stall area that must be covered
+BOX_OVERLAP_FRAC = 0.3     # OR fraction of vehicle box area
+
+# We only use the bottom part of the vehicle box (tires area) for overlap
+BOX_VERTICAL_FRACTION_FROM_TOP = 0.4  # ignore top 30% of box
 
 stall_history = defaultdict(lambda: deque(maxlen=HISTORY_LEN))
 
@@ -134,26 +141,82 @@ def detect_frame(frame_path, model, lot_id):
         return None
 
     stalls = load_config(lot_id)
-    # If no stalls, still create overlay (just raw image) + placeholder map
+
+    # Run YOLO
     res = model.predict(img, conf=CONF, imgsz=1280, verbose=False)[0]
 
+    # Build vehicle boxes list (optionally using Shapely)
     boxes = []
     for b in res.boxes:
         if int(b.cls) in VEHICLE_CLASSES:
             x1, y1, x2, y2 = map(float, b.xyxy[0])
-            if (x2 - x1) * (y2 - y1) >= FILTER_MIN_AREA:
-                boxes.append((x1, y1, x2, y2))
+            w, h = (x2 - x1), (y2 - y1)
+            if w * h < FILTER_MIN_AREA:
+                continue
 
+            # Only keep the bottom portion of the box (tire/contact area)
+            new_y1 = y1 + BOX_VERTICAL_FRACTION_FROM_TOP * h
+            y1 = new_y1
+
+            box_entry = {
+                "coords": (x1, y1, x2, y2),
+                "area": (x2 - x1) * (y2 - y1),
+            }
+            if SHAPELY_OK:
+                box_entry["poly"] = Polygon(
+                    [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+                )
+            boxes.append(box_entry)
+
+    # Initial occupancy (before smoothing)
     occ = {s["id"]: False for s in stalls}
-    for s in stalls:
-        sx, sy, sw, sh = cv2.boundingRect(s["pts"])
-        for x1, y1, x2, y2 in boxes:
-            ix1, iy1 = max(x1, sx), max(y1, sy)
-            ix2, iy2 = min(x2, sx + sw), min(y2, sy + sh)
-            if ix2 > ix1 and iy2 > iy1:
-                occ[s["id"]] = True
-                break
 
+    for s in stalls:
+        sid = s["id"]
+
+        if SHAPELY_OK and "poly" in s:
+            stall_poly = s["poly"]
+            stall_area = max(stall_poly.area, 1.0)
+
+            for box in boxes:
+                inter_area = stall_poly.intersection(box["poly"]).area
+                if inter_area <= 0:
+                    continue
+
+                stall_frac = inter_area / stall_area
+                box_frac = inter_area / max(box["area"], 1.0)
+
+                if (stall_frac >= STALL_OVERLAP_FRAC or
+                        box_frac >= BOX_OVERLAP_FRAC):
+                    occ[sid] = True
+                    break
+        else:
+            # Fallback: rectangle overlap with thresholds
+            sx, sy, sw, sh = cv2.boundingRect(s["pts"])
+            stall_area = max(sw * sh, 1.0)
+
+            for box in boxes:
+                x1, y1, x2, y2 = box["coords"]
+                ix1, iy1 = max(x1, sx), max(y1, sy)
+                ix2, iy2 = min(x2, sx + sw), min(y2, sy + sh)
+                if ix2 <= ix1 or iy2 <= iy1:
+                    continue
+
+                inter_area = (ix2 - ix1) * (iy2 - iy1)
+                stall_frac = inter_area / stall_area
+
+                if stall_frac >= STALL_OVERLAP_FRAC:
+                    occ[sid] = True
+                    break
+
+    # --- Temporal smoothing using stall_history ---
+    for sid, val in occ.items():
+        stall_history[sid].append(val)
+        history = stall_history[sid]
+        # majority vote over last HISTORY_LEN frames
+        occ[sid] = sum(history) >= (len(history) / 2.0)
+
+    # Draw overlay
     out = img.copy()
     for s in stalls:
         color = (0, 0, 255) if occ[s["id"]] else (0, 255, 0)
