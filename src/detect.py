@@ -13,7 +13,7 @@ MODEL_PATH = "yolov8s.pt"
 CONF = 0.25
 VEHICLE_CLASSES = {2, 3, 5, 7}
 CHECK_INTERVAL = 2
-FILTER_MIN_AREA = 1200
+FILTER_MIN_AREA = 800
 HISTORY_LEN = 3
 KEEP = 5   # keep last overlays/maps
 
