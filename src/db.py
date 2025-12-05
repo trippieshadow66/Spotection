@@ -22,7 +22,7 @@ def init_db():
     conn = _connect()
     cur = conn.cursor()
 
-    # Legacy TABLE: lot_config
+   
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS lot_config (

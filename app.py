@@ -23,10 +23,9 @@ def get_single_frame_universal(url, flip=0):
     Clean, universal, reliable frame capture.
     - Tries direct JPEG first (fastest)
     - Falls back to VideoCapture for all MJPEG/RTSP streams
-    - RETURNS EXACTLY ONE FRAME OR NONE
     """
 
-    # ---------- TRY SNAPSHOT MODE ----------
+    # TRY SNAPSHOT MODE 
     try:
         if url.lower().endswith(".jpg") or "snapshot" in url.lower():
             req = urllib.request.urlopen(url, timeout=5)
@@ -39,7 +38,7 @@ def get_single_frame_universal(url, flip=0):
     except:
         pass
 
-    # ---------- TRY OPENCV VIDEOCAPTURE (FOR ANY STREAM TYPE) ----------
+    # TRY OPENCV VIDEOCAPTURE (FOR ANY STREAM TYPE) 
     try:
         cap = cv2.VideoCapture(url)
         if cap.isOpened():
@@ -53,12 +52,10 @@ def get_single_frame_universal(url, flip=0):
     except Exception as e:
         print("[VideoCapture ERROR]", e)
 
-    # ---------- FAILED ----------
+    #  FAILED 
     return None
     
-# ============================================================
-# ALWAYS USE SAVED FRAMES — REMOVE LIVE FEED DEPENDENCY
-# ============================================================
+# ALWAYS USE SAVED FRAMES
 
 @app.route("/frame-latest/<int:lot_id>")
 def frame_latest(lot_id):
@@ -68,10 +65,7 @@ def frame_latest(lot_id):
         return send_file(p, mimetype="image/jpeg")
     return send_file(FALLBACK_IMAGE, mimetype="image/jpeg")
 
-
-# ============================================================
 # HELPERS
-# ============================================================
 
 def get_latest_jpg(folder):
     if not os.path.exists(folder):
@@ -81,10 +75,7 @@ def get_latest_jpg(folder):
         return None
     return max(jpgs, key=os.path.getmtime)
 
-
-# ============================================================
 # ROUTES
-# ============================================================
 
 @app.route("/")
 def home():
@@ -110,10 +101,7 @@ def map_image(lot_id):
     p = get_latest_jpg(f"data/lot{lot_id}/maps")
     return send_file(p or FALLBACK_IMAGE, mimetype="image/jpeg")
 
-
-# ============================================================
 # PARKING DATA API
-# ============================================================
 
 def _parking_data(lot_id):
     d = get_latest_detection_for_lot(lot_id)
@@ -136,10 +124,7 @@ def _parking_data(lot_id):
 def api_parking(lot_id):
     return jsonify(_parking_data(lot_id))
 
-
-# ============================================================
 # LOT MANAGEMENT
-# ============================================================
 
 @app.route("/api/lots", methods=["GET"])
 def api_get_lots():
@@ -213,10 +198,8 @@ def api_delete(lot_id):
 
     return jsonify({"status": "ok"})
 
-
-# ============================================================
 # FLIP API
-# ============================================================
+
 
 @app.route("/api/lots/<int:lot_id>/flip", methods=["POST"])
 def api_set_flip(lot_id):
@@ -233,9 +216,7 @@ def api_set_flip(lot_id):
     return jsonify({"status": "ok", "flip": flip})
 
 
-# ============================================================
 # STALL CONFIG API
-# ============================================================
 
 @app.route("/api/lots/<int:lot_id>/config", methods=["GET"])
 def api_get_config(lot_id):
@@ -266,10 +247,7 @@ def api_save_config(lot_id):
 
     return jsonify({"status": "ok"})
 
-
-# ============================================================
 # START APP
-# ============================================================
 
 if __name__ == "__main__":
     init_db()

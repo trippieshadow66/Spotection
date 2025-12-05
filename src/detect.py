@@ -22,7 +22,7 @@ STALL_OVERLAP_FRAC = 0.3   # fraction of stall area that must be covered
 BOX_OVERLAP_FRAC = 0.3     # OR fraction of vehicle box area
 
 # We only use the bottom part of the vehicle box (tires area) for overlap
-BOX_VERTICAL_FRACTION_FROM_TOP = 0.4  # ignore top 30% of box
+BOX_VERTICAL_FRACTION_FROM_TOP = 0.4  # ignore top % of box
 
 stall_history = defaultdict(lambda: deque(maxlen=HISTORY_LEN))
 
